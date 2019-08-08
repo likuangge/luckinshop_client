@@ -25,6 +25,7 @@ export default {
         this.$store.commit('Person/setTelephone', data.telephone)
         this.$store.commit('Person/setEmail', data.email)
         this.$store.commit('Person/setAvatar', data.avatar)
+        this.$store.commit('Person/changeNavAvatar', data.avatar)
       } else {
         reqAdminInitLogin().then((data) => {
           if(data.isLogin){

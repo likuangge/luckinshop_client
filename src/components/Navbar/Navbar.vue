@@ -15,7 +15,7 @@
     <el-menu-item class="login">
       <i v-show="!isLogin" class="el-icon-user-solid"></i>
       <i v-show="isLogin && isAdmin" class="el-icon-user-solid"></i>
-      <el-avatar v-show="isLogin && !isAdmin" :fit="cover" src="userAvatar"></el-avatar>
+      <el-avatar v-show="isLogin && !isAdmin" :fit="cover" :src=navAvatar></el-avatar>
       <el-button @click="loginFormVisible = true" v-if="!isLogin">请登录</el-button>
       <el-dropdown v-else @command="handleCommand">
         <span class="el-dropdown-link">
@@ -129,6 +129,7 @@
         adminFormVisible: false,
         input: '',
         select: '',
+        url: '/api/pictures/user_1.JPG',
         SignIn: {
           account: '',
           password: ''
@@ -155,12 +156,13 @@
         telephone: state=>state.Person.telephone,
         email: state=>state.Person.email,
         avatar: state=>state.Person.avatar,
+        navAvatar: state=>state.Person.navAvatar,
         types: state=>state.Products.productTypes
       }),
-      userAvatar: function() {
-        let useravatar = "/api/pictures/" + this.avatar
-        return useravatar
-      }
+      /*navAvatar: function() {
+        let navavatar = "/api/pictures/" + this.avatar
+        return navavatar
+      }*/
     },
     methods: {
       handleCommand(command){
@@ -186,6 +188,7 @@
                 this.$store.commit('Person/setTelephone', data.telephone)
                 this.$store.commit('Person/setEmail', data.email)
                 this.$store.commit('Person/setAvatar', data.avatar)
+                this.$store.commit('Person/changeNavAvatar', data.avatar)
               } else {
                 this.SignIn.password = ''
                 this.$message.error(data.message)

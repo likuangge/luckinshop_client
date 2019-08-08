@@ -1,7 +1,7 @@
 <template>
   <div class="product">
     <div style="cursor: pointer" @click="showDetail">
-      <el-avatar shape="square" :size="250" :fit="cover" :src="url"></el-avatar>
+      <el-avatar shape="square" :size="250" :fit="cover" :src="displayUrl"></el-avatar>
     </div>
     <div class="name" @click="showDetail">{{product.productName}}</div>
     <div class="price" @click="showDetail">
@@ -27,6 +27,7 @@
 </template>
 <script>
   import {mapState} from 'vuex'
+  import {reqGetProductPictures} from '../../api'
 
   export default {
     name: "Products",
@@ -36,14 +37,17 @@
     },
     data() {
       return {
-        count: 1,
-        url: '../../../static/product_1.jfif'
+        count: 1
       }
     },
     computed: {
       ...mapState({
         productProperties: state=>state.Products.productPropertyNames
-      })
+      }),
+      displayUrl: function() {
+        let url = "/api/pictures/" + this.product.displayImage
+        return url
+      }
     },
     filters: {
       numFilter (value) {
@@ -66,6 +70,11 @@
         this.$store.commit('ClickProduct/changeClick')
         this.$store.commit('ClickProduct/updateClickProduct', this.product)
         this.$store.commit('ClickProduct/updateClickProductProperties', this.productProperties)
+        reqGetProductPictures(this.product.productId).then((data) => {
+          this.$store.commit('ClickProduct/updateClickProductPictures', data)
+        }).catch(() => {
+          this.$message.error("获取图片失败")
+        })
       },
       addtocart() {
         

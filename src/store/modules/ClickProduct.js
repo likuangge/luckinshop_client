@@ -1,7 +1,8 @@
 const state = {
 	isClick: false,
 	clickProduct: '',
-	clickProductProperties: []
+	clickProductProperties: [],
+    clickProductPictures: []
 }
 
 const mutations = {
@@ -12,8 +13,10 @@ const mutations = {
     	state.clickProduct = clickProduct
     },
     updateClickProductProperties(state, clickProductProperties) {
-    	console.log("clickProductProperty",clickProductProperties)
     	state.clickProductProperties = clickProductProperties
+    },
+    updateClickProductPictures(state, clickProductPictures) {
+        state.clickProductPictures = clickProductPictures
     }
 }
 

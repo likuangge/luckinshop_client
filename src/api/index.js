@@ -29,6 +29,12 @@ export const reqGetProducts = (typeName) => ajax(BASE_URL+'/product/getProducts'
 // 9、确认头像修改
 export const reqModifyCommit = () => ajax(BASE_URL+'/commit')
 
+// 10、创建商品
+export const reqCreateProduct = ({productName, productPrice, productStock, productType, keywords, properties}) => ajax(BASE_URL+'/product/createProduct', {productName, productPrice, productStock, productType, keywords, properties}, 'POST')
+
+// 11、获取商品图片
+export const reqGetProductPictures = (productId) => ajax(BASE_URL+'/getProductPictures', {productId})
+
 // 2、注册
 export const reqSignup = ({account, name, password, code, mail}) => ajax(BASE_URL+'/user/signup', {account, name, password, code, mail}, 'POST')
 
