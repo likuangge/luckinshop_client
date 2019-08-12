@@ -5,7 +5,7 @@
       <div style="margin-left:175px">
         <el-input placeholder="请输入商品名称" v-model="input" class="input-with-select" :disabled="select === '全部商品' || !select">
           <el-select v-model="select" slot="prepend" placeholder="全部商品">
-            <el-option v-for="type in types" :label="type" :value="type"></el-option>
+            <el-option v-for="(type,index) in types" :key="index" :label="type" :value="type"></el-option>
             <el-option label="全部商品" value="全部商品"></el-option>
           </el-select>
           <el-button slot="append" icon="el-icon-search" @click="Select"></el-button>
@@ -15,7 +15,7 @@
     <el-menu-item class="login">
       <i v-show="!isLogin" class="el-icon-user-solid"></i>
       <i v-show="isLogin && isAdmin" class="el-icon-user-solid"></i>
-      <el-avatar v-show="isLogin && !isAdmin" :fit="cover" :src=navAvatar></el-avatar>
+      <el-image v-show="isLogin && !isAdmin" :src=navAvatar style="width:25px;height:25px"></el-image>
       <el-button @click="loginFormVisible = true" v-if="!isLogin">请登录</el-button>
       <el-dropdown v-else @command="handleCommand">
         <span class="el-dropdown-link">
@@ -81,7 +81,7 @@
 
 <script>
   import {mapState} from 'vuex'
-  import {userLogin,adminLogin,reqSignup,reqPhoneCode,reqSendMail} from '../../api'
+  import {userLogin,adminLogin,reqInitShopCart} from '../../api'
 
   export default {
     data() {
@@ -156,13 +156,12 @@
         telephone: state=>state.Person.telephone,
         email: state=>state.Person.email,
         avatar: state=>state.Person.avatar,
-        navAvatar: state=>state.Person.navAvatar,
         types: state=>state.Products.productTypes
       }),
-      /*navAvatar: function() {
-        let navavatar = "/api/pictures/" + this.avatar
-        return navavatar
-      }*/
+      navAvatar: function(){
+        let url = "/api/pictures/" + this.avatar
+        return url
+      },
     },
     methods: {
       handleCommand(command){
@@ -182,13 +181,15 @@
             }).then((data) => {
               if (data.isLogin) {
                 this.loginFormVisible = false
+                reqInitShopCart().then((data) => {
+                  this.$store.commit('ShopCart/displayShopCart', data)
+                })
                 this.$store.commit('Person/changeLogin')
                 this.$store.commit('Person/setUserId', data.userId)
                 this.$store.commit('Person/setUsername', data.username)
                 this.$store.commit('Person/setTelephone', data.telephone)
                 this.$store.commit('Person/setEmail', data.email)
                 this.$store.commit('Person/setAvatar', data.avatar)
-                this.$store.commit('Person/changeNavAvatar', data.avatar)
               } else {
                 this.SignIn.password = ''
                 this.$message.error(data.message)

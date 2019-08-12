@@ -1,13 +1,13 @@
 <template>
-  <el-tabs :tab-position="tabPosition" style="height: 500px;">
+  <el-tabs :tab-position="tabPosition" style="height: 600px;">
     <el-tab-pane label="Account Settings">
       <h2>Account Settings</h2>
       <el-divider></el-divider>
       <el-container>
         <el-aside>
           <div v-if="!isUpload" style="text-align:center">
-            <el-avatar shape="square" :size="250" :fit="cover" :src="userAvatar"></el-avatar>
-            <el-button style="margin-top:53px" @click="beginUpload">Change your avatar</el-button>
+            <el-image :src=userAvatar style="width:278px;height:278px"></el-image>
+            <el-button style="margin-top:30px" @click="beginUpload">Change your avatar</el-button>
           </div>
           <div v-else style="text-align:center">
             <el-upload class="avatar-uploader" action="/api/avatarUpload" :show-file-list="false" :on-success="onSuccess" :onError="onError" :before-upload="beforeUpload" :on-remove="onRemove" :http-request="picUpload">
@@ -51,6 +51,8 @@
   import {mapState} from 'vuex'
   import {modifyUserInfo,reqModifyCommit} from '../../api'
   import axios from 'axios'
+
+  const url = "/api/pictures/"
 
   export default {
     data() {
@@ -108,7 +110,6 @@
       }
       return {
         tabPosition: 'left',
-        url: '../../../static/user_1.JPG',
         imageUrl: '',
         isUpload: false,
         endUpload: false,
@@ -132,10 +133,10 @@
         email: state=>state.Person.email,
         avatar: state=>state.Person.avatar
       }),
-      userAvatar: function() {
-        let useravatar = "/api/pictures/" + this.avatar
-        return useravatar
-      }
+      userAvatar: function(){
+        let url = "/api/pictures/" + this.avatar
+        return url
+      },
     },
     methods: {
       modify(formName) {

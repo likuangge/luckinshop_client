@@ -2,13 +2,15 @@
   <div id="app">
       <Navbar></Navbar>
       <router-view/>
+      <ShopCart v-if="!isAdmin"></ShopCart>
   </div>
 </template>
 
 <script>
 import {mapState} from 'vuex'
 import Navbar from './components/Navbar/Navbar'
-import {reqInitLogin, reqAdminInitLogin} from './api'
+import ShopCart from './components/ShopCart/ShopCart'
+import {reqInitLogin,reqAdminInitLogin,reqInitShopCart} from './api'
 
 export default {
   name: 'App',
@@ -25,7 +27,6 @@ export default {
         this.$store.commit('Person/setTelephone', data.telephone)
         this.$store.commit('Person/setEmail', data.email)
         this.$store.commit('Person/setAvatar', data.avatar)
-        this.$store.commit('Person/changeNavAvatar', data.avatar)
       } else {
         reqAdminInitLogin().then((data) => {
           if(data.isLogin){
@@ -37,11 +38,20 @@ export default {
           }
         })
       }
+    }),
+    reqInitShopCart().then((data) => {
+      this.$store.commit('ShopCart/displayShopCart', data)
     })
   },
-  components:{
+  components: {
+    ShopCart,
     Navbar
   },
+  computed: {
+    ...mapState({
+      isAdmin: state=>state.Person.isAdmin,
+    }),
+  }
 }
 </script>
 

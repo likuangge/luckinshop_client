@@ -35,6 +35,24 @@ export const reqCreateProduct = ({productName, productPrice, productStock, produ
 // 11、获取商品图片
 export const reqGetProductPictures = (productId) => ajax(BASE_URL+'/getProductPictures', {productId})
 
+// 12、购物车信息插入Redis
+export const insertShopCart = ({productId,count}) => ajax(BASE_URL+'/shopcart/insertShopCart', {productId,count})
+
+// 13、获取购物车信息
+export const reqInitShopCart = () => ajax(BASE_URL+'/shopcart/init')
+
+// 14、删除购物车信息
+export const reqDeleteShopCart = (productId) => ajax(BASE_URL+'/shopcart/delete',{productId})
+
+// 15、增加购物车商品数量
+export const reqAddCount = (productId) => ajax(BASE_URL+'/shopcart/add',{productId})
+
+// 16、减少购物车商品数量
+export const reqSubstractCount = (productId) => ajax(BASE_URL+'/shopcart/substract',{productId})
+
+// 17、提交订单
+export const reqSubmitOrder = (order) => ajax(BASE_URL+'/order/submit',{order},'POST')
+
 // 2、注册
 export const reqSignup = ({account, name, password, code, mail}) => ajax(BASE_URL+'/user/signup', {account, name, password, code, mail}, 'POST')
 

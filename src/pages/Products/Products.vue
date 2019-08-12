@@ -1,7 +1,7 @@
 <template>
   <div>
     <el-tabs :tab-position="tabPosition" style="height: 900px;" :value="activeType" @tab-click="handleClick" :closable="isAdmin">
-      <el-tab-pane v-for="type in types" :label="type" :name="type">
+      <el-tab-pane v-for="(type,index) in types" :key="index" :label="type" :name="type">
         <el-button v-show="isAdmin" size="small" style="float:right;margin-top:30px" @click="CreateProductFormVisible = true">
           添加商品
         </el-button>
@@ -15,7 +15,7 @@
         </el-breadcrumb>
         <el-divider></el-divider>
         <el-row>
-          <el-col :span="4" v-for="(product, index) in products">
+          <el-col :span="productSpanValue" v-for="(product, index) in products">
             <Product :product="product" :index="index" v-show="!isClick"></Product>
           </el-col>
         </el-row>
@@ -218,6 +218,9 @@
       },
       spanValue: function() {
         return 24/this.urls.length
+      },
+      productSpanValue: function() {
+        return 24/this.products.length
       }
     },
     filters: {

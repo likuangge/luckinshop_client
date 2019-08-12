@@ -27,7 +27,7 @@
 </template>
 <script>
   import {mapState} from 'vuex'
-  import {reqGetProductPictures} from '../../api'
+  import {reqGetProductPictures,insertShopCart} from '../../api'
 
   export default {
     name: "Products",
@@ -42,6 +42,7 @@
     },
     computed: {
       ...mapState({
+        isLogin:state=>state.Person.isLogin,
         productProperties: state=>state.Products.productPropertyNames
       }),
       displayUrl: function() {
@@ -77,7 +78,27 @@
         })
       },
       addtocart() {
-        
+        this.$store.dispatch('ShopCart/addtocart', {
+          productId: this.product.productId,
+          displayImage: this.product.displayImage,
+          productName: this.product.productName,
+          typeName: this.product.typeName,
+          count: this.count,
+          price: this.product.price,
+          money: this.count*this.product.price,
+          stock: this.product.stock,
+        }).then(() => {
+          this.count = 1
+          this.$message.success("成功加入购物车")
+        }).catch(() => {
+          this.$message.error("无法重复加入购物车")
+        })
+        insertShopCart({
+          productId:this.product.productId,
+          count:this.count
+        }).then((data) => {}).catch(() => {
+          this.$message.error("网络连接异常")
+        })
       }
     }
   }

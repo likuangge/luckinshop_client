@@ -7,8 +7,7 @@ const state = {
     username: '',
     telephone: '',
     email: '',
-    avatar: '',
-    navAvatar: '/api/pictures/'
+    avatar: ''
 }
 
 const mutations = {
@@ -32,10 +31,6 @@ const mutations = {
     },
     setAvatar(state, avatar) {
         state.avatar = avatar
-    },
-    changeNavAvatar(state, navAvatar) {
-        state.navAvatar = state.navAvatar + navAvatar
-        console.log("navAvatar", state.navAvatar)
     }
 }
 
