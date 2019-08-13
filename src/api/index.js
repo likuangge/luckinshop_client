@@ -53,6 +53,21 @@ export const reqSubstractCount = (productId) => ajax(BASE_URL+'/shopcart/substra
 // 17、提交订单
 export const reqSubmitOrder = (order) => ajax(BASE_URL+'/order/submit',{order},'POST')
 
+// 18、添加地址
+export const reqAddAddress = ({receiver,telephone,province,city,district,detail,isDefault}) => ajax(BASE_URL+'/address/insert',{receiver,telephone,province,city,district,detail,isDefault},'POST')
+
+// 19、获取所有地址
+export const reqGetAddress = () => ajax(BASE_URL+'/address/get')
+
+// 20、修改地址默认状态
+export const reqSetDefault = (addressId) => ajax(BASE_URL+'/address/setdefault',{addressId})
+
+// 21、删除地址
+export const reqDeleteAddress = (addressId) => ajax(BASE_URL+'/address/delete',{addressId})
+
+// 22、修改地址
+export const reqModifyAddress = ({addressId,receiver,telephone,province,city,district,detail}) => ajax(BASE_URL+'/address/modify',{addressId,receiver,telephone,province,city,district,detail},'POST')
+
 // 2、注册
 export const reqSignup = ({account, name, password, code, mail}) => ajax(BASE_URL+'/user/signup', {account, name, password, code, mail}, 'POST')
 

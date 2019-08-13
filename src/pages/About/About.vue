@@ -1,7 +1,7 @@
 <template>
-  <el-tabs :tab-position="tabPosition" style="height: 600px;">
-    <el-tab-pane label="Account Settings">
-      <h2>Account Settings</h2>
+  <el-tabs :tab-position="tabPosition" @tab-click="handleClick" style="height: 600px;">
+    <el-tab-pane label="个人中心">
+      <h2>个人中心</h2>
       <el-divider></el-divider>
       <el-container>
         <el-aside>
@@ -44,13 +44,89 @@
     </el-tab-pane>
     <el-tab-pane label="Order">配置管理</el-tab-pane>
     <el-tab-pane label="Credit">角色管理</el-tab-pane>
-    <el-tab-pane label="Address">定时任务补偿</el-tab-pane>
+    <el-tab-pane label="地址管理" name="address">
+      <h2>我的收货地址</h2>
+      <el-divider></el-divider>
+      <el-table :data="allAddress" style="width: 100%">
+        <el-table-column prop="receiver" label="收件人姓名" width="100"></el-table-column>
+        <el-table-column prop="telephone" label="收件人手机" width="150"></el-table-column>
+        <el-table-column prop="province" label="省/自治区" width="100"></el-table-column>
+        <el-table-column prop="city" label="市/城区" width="100"></el-table-column>
+        <el-table-column prop="district" label="区/县" width="100"></el-table-column>
+        <el-table-column prop="detail" label="详细地址" width="300"></el-table-column>
+        <el-table-column prop="isDefault" width="120">
+          <template slot-scope="scope">
+            <el-tag type="info" v-if="scope.row.isDefault">默认地址</el-tag>
+            <el-link type="primary" v-else @click="setDefault(scope.row.addressId)">设为默认地址</el-link>
+          </template>
+        </el-table-column>
+        <el-table-column width="100">
+          <template slot-scope="scope">
+            <el-link type="primary" @click="modify(scope.row)">修改地址</el-link>
+          </template>
+        </el-table-column>
+        <el-table-column width="300">
+          <template slot-scope="scope">
+            <el-link type="primary" @click="deleteAddress(scope.row.addressId)">删除地址</el-link>
+          </template>
+        </el-table-column>
+        <el-table-column align="right">
+          <template slot="header" slot-scope="scope">
+            <el-button type="primary" @click="addAddress = true">添加地址</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+      <el-dialog :visible.sync="addAddress" title="添加地址" center @close="onClose">
+        <el-form :model="Address" label-width="100px">
+          <el-form-item label="收货人姓名">
+            <el-input v-model="Address.receiver" style="width:500px"></el-input>
+          </el-form-item>
+          <el-form-item label="收货人电话">
+            <el-input v-model="Address.telephone" style="width:500px"></el-input>
+          </el-form-item>
+          <el-form-item label="收获地址">
+            <el-cascader v-model="Address.pcd" :options="options" @change="handleChange" placeholder="请选择省\市\区" style="width:460px" clearable></el-cascader>
+          </el-form-item>
+          <el-form-item label="">
+            <el-input type="textarea" v-model="Address.detail" placeholder="详细地址"></el-input>
+          </el-form-item>
+          <el-form-item label="">
+            <el-checkbox v-model="checked">设为默认地址</el-checkbox>
+          </el-form-item>
+        </el-form>
+        <div slot="footer" class="dialog-footer">
+          <el-button type="primary" @click="createAddress('Address')">立即创建</el-button>
+          <el-button @click="onCancel">取消</el-button>
+        </div>
+      </el-dialog>
+      <el-dialog :visible.sync="changeAddress" title="修改地址" center @close="onModifyClose">
+        <el-form :model="ModifyAddress" label-width="100px">
+          <el-form-item label="收货人姓名">
+            <el-input v-model="ModifyAddress.receiver" style="width:500px" @input="change($event)"></el-input>
+          </el-form-item>
+          <el-form-item label="收货人电话">
+            <el-input v-model="ModifyAddress.telephone" style="width:500px"></el-input>
+          </el-form-item>
+          <el-form-item label="收获地址">
+            <el-cascader v-model="ModifyAddress.pcd" :options="options" placeholder="请选择省\市\区" style="width:460px" clearable></el-cascader>
+          </el-form-item>
+          <el-form-item>
+            <el-input type="textarea" v-model="ModifyAddress.detail" placeholder="详细地址"></el-input>
+          </el-form-item>
+        </el-form>
+        <div slot="footer" class="dialog-footer">
+          <el-button type="primary" @click="modifyAddress('ModifyAddress')">确认修改</el-button>
+          <el-button @click="onModifyCancel">取消</el-button>
+        </div>
+      </el-dialog>
+    </el-tab-pane>
   </el-tabs>
 </template>
 <script>
   import {mapState} from 'vuex'
-  import {modifyUserInfo,reqModifyCommit} from '../../api'
+  import {modifyUserInfo,reqModifyCommit,reqAddAddress,reqGetAddress,reqSetDefault,reqDeleteAddress,reqModifyAddress} from '../../api'
   import axios from 'axios'
+  import addressData from '../../assets/citys.json'
 
   const url = "/api/pictures/"
 
@@ -109,6 +185,8 @@
         }
       }
       return {
+        options: addressData,
+        checked: false,
         tabPosition: 'left',
         imageUrl: '',
         isUpload: false,
@@ -122,6 +200,22 @@
           username: [{ validator: Username, trigger: 'blur'}],
           telephone: [{ validator: Telephone, trigger: 'blur'}],
           email: [{ validator: Email, trigger: 'blur'}]
+        },
+        allAddress: [],
+        addAddress: false,
+        changeAddress: false,
+        Address: {
+          name: '',
+          telephone: '',
+          pcd: [],
+          detail: ''
+        },
+        ModifyAddress: {
+          id: '',
+          name: '',
+          telephone: '',
+          pcd: [],
+          detail: ''
         }
       }
     },
@@ -139,6 +233,18 @@
       },
     },
     methods: {
+      handleClick(tab, event) {
+        if(tab.name === "address") {
+          reqGetAddress().then((data) => {
+            this.allAddress = data
+          }).catch(() => {
+            this.$message.error("获取地址失败")
+          })
+        }
+      },
+      change(e) {
+        this.$forceUpdate()
+      },
       modify(formName) {
         this.$refs[formName].validate((valid) => {
           if (valid) {
@@ -214,9 +320,100 @@
             data.onError(response.data)
           }
         })
-      }
+      },
+      setDefault(addressId) {
+        reqSetDefault(addressId).then((data) => {
+          this.allAddress = data
+        }).catch(() => {
+          this.$message.error("修改地址失败")
+        })
+      },
+      deleteAddress(addressId) {
+        reqDeleteAddress(addressId).then((data) => {
+          this.allAddress = data
+        }).catch(() => {
+          this.$message.error("删除地址失败")
+        })
+      },
+      createAddress(modelName) {
+        reqAddAddress({
+          receiver: this.Address.receiver,
+          telephone: this.Address.telephone,
+          province: this.Address.pcd[0],
+          city: this.Address.pcd[1],
+          district: this.Address.pcd[2],
+          detail: this.Address.detail,
+          isDefault: this.checked
+        }).then(() => {
+          this.addAddress = false
+          this.Address.receiver = ''
+          this.Address.telephone = ''
+          this.Address.pcd = []
+          this.Address.detail = ''
+          this.checked = false
+          reqGetAddress().then((data) => {
+            this.allAddress = data
+          }).catch(() => {
+            this.$message.error("获取地址失败")
+          })
+        }).catch(() => {
+          this.$message.error("添加地址失败")
+        })
+      },
+      onClose() {
+        this.addAddress = false
+        this.Address.receiver = ''
+        this.Address.telephone = ''
+        this.Address.pcd = []
+        this.Address.detail = ''
+        this.checked = false
+      },
+      onCancel() {
+        this.addAddress = false
+        this.Address.receiver = ''
+        this.Address.telephone = ''
+        this.Address.pcd = []
+        this.Address.detail = ''
+        this.checked = false
+      },
+      modify(data) {
+        this.changeAddress = true
+        this.ModifyAddress.receiver = data.receiver
+        this.ModifyAddress.id = data.addressId
+        this.ModifyAddress.telephone = data.telephone
+        this.ModifyAddress.detail = data.detail
+      },
+      modifyAddress(modelName) {
+        reqModifyAddress({
+          addressId: this.ModifyAddress.id,
+          receiver: this.ModifyAddress.receiver,
+          telephone: this.ModifyAddress.telephone,
+          province: this.ModifyAddress.pcd[0],
+          city: this.ModifyAddress.pcd[1],
+          district: this.ModifyAddress.pcd[2],
+          detail: this.ModifyAddress.detail
+        }).then(() => {
+          this.changeAddress = false
+          this.ModifyAddress.pcd = []
+          reqGetAddress().then((data) => {
+            this.allAddress = data
+          }).catch(() => {
+            this.$message.error("获取地址失败")
+          })
+        }).catch(() => {
+          this.$message.error("添加地址失败")
+        })
+      },
+      onModifyClose() {
+        this.changeAddress = false
+        this.ModifyAddress.pcd = []
+      },
+      onModifyCancel() {
+        this.changeAddress = false
+        this.ModifyAddress.pcd = []
+      },
     }
-  };
+  }
 </script>
 
 <style scoped>

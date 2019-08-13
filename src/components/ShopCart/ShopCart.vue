@@ -89,34 +89,116 @@
                 </el-badge>
             </div>
         </transition>
-        <el-dialog title="订单确认" :visible.sync="orderVisible">
+        <el-dialog title="订单确认" :visible.sync="orderVisible" :before-close=onClose>
             <div>
-            {{this.order.orderId}}
+            订单编号：{{this.order.orderId}}
             </div>
-            <div v-for="(product, index) in order.orderProducts" :key="index">
-                <el-row>
-                    <el-col :span="7">
-                        <el-image :src="picUrl(product.displayImage)"></el-image>
-                    </el-col>
-                    <el-col :span="13">
-                        <el-container>
-                            <el-main>
-                                <div class="type">{{product.typeName}}</div>
-                                <div class="name">{{product.productName}}</div>
-                            </el-main>
-                            <el-footer>
+            <el-row>
+                <el-col :span="12">
+                    <div v-for="(product, index) in order.orderProducts" :key="index">
+                        <el-row>
+                            <el-col :span="10">
+                                <el-image :src="picUrl(product.displayImage)"></el-image>
+                            </el-col>
+                            <el-col :span="14">
                                 <div>
-                                    {{product.count}}
+                                    <div class="ordertype">{{product.typeName}}</div>
+                                    <div class="ordername">{{product.productName}}</div>
+                                    <div class="ordermoney">
+                                        共{{product.count}}件,合计{{product.money | numFilter}}元
+                                    </div>
                                 </div>
-                            </el-footer>
-                        </el-container>
-                    </el-col>
-                    <el-col :span="4">
-                        <div class="money">
-                            ￥{{product.money | numFilter}}
+                            </el-col>
+                        </el-row>
+                    </div>
+                </el-col>
+                <el-col :span="12">
+                    <div class="time">
+                        请选择配送地址
+                    </div>
+                    <div style="margin-top:25px">
+                        <div v-if="!addressVisible">
+                            <div>
+                                <el-radio-group v-model="selectAddress">
+                                    <div v-show="defaultAddress != ''">
+                                        <el-radio :label=defaultAddress.addressId>
+                                            <span>默认地址</span>
+                                            <div>
+                                                <span>{{defaultAddress.receiver}}</span><span></span>
+                                                <span>{{defaultAddress.telephone}}</span>
+                                            </div>
+                                            <div>
+                                                <span>{{defaultAddress.province}}</span><span>{{defaultAddress.city}}</span><span>{{defaultAddress.district}}</span>
+                                            </div>
+                                            <div>{{defaultAddress.detail}}</div>
+                                        </el-radio>
+                                    </div>
+                                    <div v-for="(address,index) in otherAddress" :key="index">
+                                        <el-radio :label=address.addressId>
+                                            <span>{{address.receiver}}</span><span></span>
+                                            <span>{{address.telephone}}</span>
+                                            <div>
+                                                <span>{{address.province}}</span><span>{{address.city}}</span><span>{{address.district}}</span>
+                                            </div>
+                                            <div>{{address.detail}}</div>
+                                        </el-radio>
+                                    </div>
+                                </el-radio-group>
+                            </div>
+                            <el-link type="primary" icon="el-icon-plus" @click="addAddress">添加地址</el-link>
+                            <div class="pay">
+                                请选择支付方式
+                            </div>
+                            <div>
+                                <el-radio v-model="paymethod" label="0">积分支付</el-radio>
+                                <el-radio v-model="paymethod" label="1">现金支付</el-radio>
+                            </div>
+                            <el-row>
+                                <el-col :span="8">
+                                    <div class="ordertotalmoney" v-if="paymethod === '0'">
+                                        共需{{order.totalMoney * 10}}积分
+                                    </div>
+                                    <div class="ordertotalmoney" v-else>
+                                        共需{{order.totalMoney | numFilter}}元
+                                    </div>
+                                </el-col>
+                                <el-col :span="12" style="margin-top:50px">
+                                    <el-button type="success" @click="pay">立即付款</el-button>
+                                </el-col>
+                            </el-row>
                         </div>
-                    </el-col>
-                </el-row>
+                        <el-form :model="Address" v-else>
+                            <el-form-item label="收货人姓名">
+                                <el-input v-model="Address.receiver" @input="change($event)"></el-input>
+                            </el-form-item>
+                            <el-form-item label="收货人电话">
+                                <el-input v-model="Address.telephone"></el-input>
+                            </el-form-item>
+                            <el-form-item label="收获地址">
+                                <el-cascader v-model="Address.pcd" :options="options" placeholder="请选择省\市\区" style="width:460px" clearable></el-cascader>
+                            </el-form-item>
+                            <el-form-item label="">
+                                <el-input type="textarea" v-model="Address.detail" placeholder="详细地址"></el-input>
+                            </el-form-item>
+                            <el-form-item label="">
+                                <el-checkbox v-model="checked">设为默认地址</el-checkbox>
+                            </el-form-item>
+                            <el-form-item>
+                                <el-button type="primary" @click="createAddress('Address')">立即创建</el-button>
+                                <el-button @click="onCancel">取消</el-button>
+                            </el-form-item>
+                        </el-form>
+                    </div>
+                </el-col>
+            </el-row>
+        </el-dialog>
+        <el-dialog :visible.sync="isPay" title="付款">
+            <div style="font-size:40px">
+                {{this.min}}分{{this.second}}秒后订单自动取消！
+            </div>
+            <div style="margin-top:50px">
+                <el-button type="info">完成付款</el-button>
+                <el-button type="warning">取消订单</el-button>
             </div>
         </el-dialog>
     </div>
@@ -124,18 +206,33 @@
 <script>
     import {mapState} from 'vuex'
     import axios from 'axios'
-    import {reqDeleteShopCart,reqAddCount,reqSubstractCount,reqSubmitOrder} from '../../api'
+    import {reqDeleteShopCart,reqAddCount,reqSubstractCount,reqSubmitOrder,reqAddAddress,reqGetAddress} from '../../api'
+    import addressData from '../../assets/citys.json'
 
     export default {
         name: "ShopCart",
         data() {
             return {
+                options: addressData,
+                addressVisible: false,
+                checked: false,
                 showShopCart: false,
                 order: '',
                 orderList: [],
                 checkAll: false,
                 isIndeterminate: false,
-                orderVisible: false
+                orderVisible: false,
+                Address: {
+                    name: '',
+                    telephone: '',
+                    pcd: [],
+                    detail: ''
+                },
+                otherAddress: [],
+                defaultAddress: '',
+                selectAddress: '',
+                paymethod: '0',
+                isPay: false
             }
         },
         filters: {
@@ -146,7 +243,9 @@
         },
         computed: {
             ...mapState({
-                products: state => state.ShopCart.products
+                products: state => state.ShopCart.products,
+                min: state=>state.Timer.min,
+                second: state=>state.Timer.second
             }),
             total() {
                 let total_money = 0;
@@ -159,6 +258,9 @@
             }
         },
         methods: {
+            change(e) {
+                this.$forceUpdate()
+            },
             picUrl(picName) {
                 return "/api/pictures/" + picName
             },
@@ -223,6 +325,19 @@
                 })  
             },
             submitOrder() {
+                reqGetAddress().then((data) => {
+                    let address = data
+                    for(var i = 0;i < address.length;i++) {
+                        if(address[i].isDefault) {
+                            this.defaultAddress = address[i]
+                            this.selectAddress = address[i].addressId
+                        } else {
+                            this.otherAddress.push(address[i])
+                        }
+                    }
+                }).catch(() => {
+                    this.$message.error=("获取地址失败")
+                })
                 let url = '/api/order/submit'
                 let formData = new FormData()
                 formData.append("order",this.orderList)
@@ -236,11 +351,91 @@
                     data:formData
                 }).then((data) => {
                     this.order = data.data
-                    console.log("Data", this.order)
                     this.orderVisible = true
                 }).catch(() => {
                     this.$message.error("获取订单失败")
                 })
+            },
+            addAddress() {
+                this.addressVisible = true
+            },
+            createAddress(modelName) {
+                reqAddAddress({
+                    receiver: this.Address.receiver,
+                    telephone: this.Address.telephone,
+                    province: this.Address.pcd[0],
+                    city: this.Address.pcd[1],
+                    district: this.Address.pcd[2],
+                    detail: this.Address.detail,
+                    isDefault: this.checked
+                }).then(() => {
+                    this.addressVisible = false
+                    reqGetAddress().then((data) => {
+                        let address = data
+                        this.otherAddress = []
+                        for(var i = 0;i < address.length;i++) {
+                            if(address[i].isDefault) {
+                                this.defaultAddress = address[i]
+                                this.selectAddress = address[i].addressId
+                            } else {
+                                this.otherAddress.push(address[i])
+                            }
+                        }
+                    }).catch(() => {
+                        this.$message.error=("获取地址失败")
+                    })
+                }).catch(() => {
+                    this.$message.success("传输失败")
+                })
+            },
+            onClose() {
+                this.$confirm('关闭窗口将自动取消订单, 是否继续?', '提示', {
+                    confirmButtonText: '确定',
+                    cancelButtonText: '取消',
+                    type: 'warning'
+                }).then(() => {
+                    this.$message({
+                        type: 'success',
+                        message: '取消成功!'
+                    });
+                    this.defaultAddress = ''
+                    this.otherAddress = []
+                    this.addressVisible = false
+                    this.orderVisible = false
+                    this.orderList = []
+                    this.checkAll = false
+                    this.isIndeterminate = false
+                    this.Address.receiver = ''
+                    this.Address.telephone = ''
+                    this.Address.pcd = []
+                    this.Address.detail = ''
+                    this.checked = false
+                }).catch(() => {});
+            },
+            onCancel() {
+                this.addressVisible = false
+                this.Address.receiver = ''
+                this.Address.telephone = ''
+                this.Address.pcd = []
+                this.Address.detail = ''
+                this.checked = false
+            },
+            pay() {
+                this.isPay = true
+                this.orderVisible = false
+                this.$store.dispatch('Timer/beginTimer')
+                for(var i = 0;i < this.orderList.length;i++) {
+                    for(var j = 0;j < this.products.length;j++) {
+                        if(this.orderList[i] === this.products[j].productId) {
+                            this.$store.commit('ShopCart/deleteProduct',j)
+                            reqDeleteShopCart(this.orderList[i]).then((data) => {
+                                this.$message.success(data)
+                            }).catch(() => {
+                                this.$message.error("购物车删除商品失败")
+                            })
+                        }
+                    }
+                }
             }
         }
     }
@@ -307,13 +502,27 @@
         font-family: 等线;
         font-size: 16px;
     }
+    .ordername{
+        font-family: 等线;
+        font-size: 24px;
+    }
     .type{
         font-family: 仿宋;
         font-size: 14px;
     }
+    .ordertype{
+        font-family: 仿宋;
+        font-size: 20px;
+        margin-top:50px
+    }
     .money{
         font-family: tohoma,arial;
         font-size: 15px;
+    }
+    .ordermoney{
+        font-family: tohoma,arial;
+        font-size: 15px;
+        margin-top:50px
     }
     .totaltxt{
         font-family: 仿宋;
@@ -324,5 +533,20 @@
         font-weight: 500;
         font-size: 20px;
         font-family: tohoma,arial;
+    }
+    .time{
+        font-family: 等线;
+        font-size: 24px;
+    }
+    .pay{
+        font-family: 等线;
+        font-size: 24px;
+        margin-top:20px;
+    }
+    .ordertotalmoney{
+        font-weight: 500;
+        font-size: 20px;
+        font-family: tohoma,arial;
+        margin-top:50px;
     }
 </style>
