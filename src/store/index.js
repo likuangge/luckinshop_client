@@ -5,6 +5,7 @@ import Products from './modules/Products'
 import ClickProduct from './modules/ClickProduct'
 import ShopCart from './modules/ShopCart'
 import Timer from './modules/Timer'
+import Order from './modules/Order'
 
 Vue.use(Vuex)
 
@@ -14,6 +15,7 @@ export default new Vuex.Store({
         Products,
         ClickProduct,
         ShopCart,
-        Timer
+        Timer,
+        Order
     },
 })

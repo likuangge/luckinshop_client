@@ -50,23 +50,32 @@ export const reqAddCount = (productId) => ajax(BASE_URL+'/shopcart/add',{product
 // 16、减少购物车商品数量
 export const reqSubstractCount = (productId) => ajax(BASE_URL+'/shopcart/substract',{productId})
 
-// 17、提交订单
-export const reqSubmitOrder = (order) => ajax(BASE_URL+'/order/submit',{order},'POST')
-
-// 18、添加地址
+// 17、添加地址
 export const reqAddAddress = ({receiver,telephone,province,city,district,detail,isDefault}) => ajax(BASE_URL+'/address/insert',{receiver,telephone,province,city,district,detail,isDefault},'POST')
 
-// 19、获取所有地址
+// 18、获取所有地址
 export const reqGetAddress = () => ajax(BASE_URL+'/address/get')
 
-// 20、修改地址默认状态
+// 19、修改地址默认状态
 export const reqSetDefault = (addressId) => ajax(BASE_URL+'/address/setdefault',{addressId})
 
-// 21、删除地址
+// 20、删除地址
 export const reqDeleteAddress = (addressId) => ajax(BASE_URL+'/address/delete',{addressId})
 
-// 22、修改地址
+// 21、修改地址
 export const reqModifyAddress = ({addressId,receiver,telephone,province,city,district,detail}) => ajax(BASE_URL+'/address/modify',{addressId,receiver,telephone,province,city,district,detail},'POST')
+
+// 22、清除订单Session
+export const reqClearOrderSession = (orderId) => ajax(BASE_URL+'/order/clear',{orderId})
+
+// 23、创建订单
+export const reqCreateOrder = (addressId) => ajax(BASE_URL+'/order/create',{addressId})
+
+// 24、获取订单过期时间
+export const reqGetTime = () => ajax(BASE_URL+'/order/gettime')
+
+// 25、获得相应用户订单
+export const reqGetOrder = (state) => ajax(BASE_URL+'/order/get',{state})
 
 // 2、注册
 export const reqSignup = ({account, name, password, code, mail}) => ajax(BASE_URL+'/user/signup', {account, name, password, code, mail}, 'POST')
@@ -108,9 +117,6 @@ export const reqModifyBook = (book,newisbn,cover) => ajax(BASE_URL+'/book/modify
     year: book.year,
     pages: book.pages,
 }, 'POST')
-
-// 8、获得相应用户订单
-export const reqGetOrder = (account) => ajax(BASE_URL+'/order/get',{account}, 'POST')
 
 // 9、添加订单
 export const reqAddOrder = (orders) => ajax(BASE_URL+'/order/add', {orders}, 'POST')

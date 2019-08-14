@@ -154,7 +154,7 @@
                                 <el-radio v-model="paymethod" label="1">现金支付</el-radio>
                             </div>
                             <el-row>
-                                <el-col :span="8">
+                                <el-col :span="14">
                                     <div class="ordertotalmoney" v-if="paymethod === '0'">
                                         共需{{order.totalMoney * 10}}积分
                                     </div>
@@ -162,7 +162,7 @@
                                         共需{{order.totalMoney | numFilter}}元
                                     </div>
                                 </el-col>
-                                <el-col :span="12" style="margin-top:50px">
+                                <el-col :span="10" style="margin-top:50px">
                                     <el-button type="success" @click="pay">立即付款</el-button>
                                 </el-col>
                             </el-row>
@@ -192,13 +192,13 @@
                 </el-col>
             </el-row>
         </el-dialog>
-        <el-dialog :visible.sync="isPay" title="付款">
+        <el-dialog :visible.sync="isPay" title="付款" @close="payClose">
             <div style="font-size:40px">
                 {{this.min}}分{{this.second}}秒后订单自动取消！
             </div>
             <div style="margin-top:50px">
-                <el-button type="info">完成付款</el-button>
-                <el-button type="warning">取消订单</el-button>
+                <el-button type="info" @click="finishPay">完成付款</el-button>
+                <el-button type="warning" @click="cancelPay">取消订单</el-button>
             </div>
         </el-dialog>
     </div>
@@ -206,8 +206,11 @@
 <script>
     import {mapState} from 'vuex'
     import axios from 'axios'
-    import {reqDeleteShopCart,reqAddCount,reqSubstractCount,reqSubmitOrder,reqAddAddress,reqGetAddress} from '../../api'
+    import {reqDeleteShopCart,reqAddCount,reqSubstractCount,reqAddAddress,reqGetAddress,reqClearOrderSession,reqCreateOrder} from '../../api'
     import addressData from '../../assets/citys.json'
+
+    const MIN_COUNT = 5
+    const TIME_COUNT = 59
 
     export default {
         name: "ShopCart",
@@ -232,7 +235,10 @@
                 defaultAddress: '',
                 selectAddress: '',
                 paymethod: '0',
-                isPay: false
+                isPay: false,
+                min: '',
+                second: '',
+                timer: null
             }
         },
         filters: {
@@ -398,6 +404,7 @@
                         type: 'success',
                         message: '取消成功!'
                     });
+                    reqClearOrderSession().then().catch()
                     this.defaultAddress = ''
                     this.otherAddress = []
                     this.addressVisible = false
@@ -421,8 +428,32 @@
                 this.checked = false
             },
             pay() {
+                if(!this.timer) {
+                    this.second = 0
+                    this.min = MIN_COUNT
+                    this.timer = setInterval(() => {
+                        if(this.second > 0 && this.second <= TIME_COUNT) {
+                            this.second--
+                        }
+                        if(this.second === 0 && this.min > 0 && this.min <= MIN_COUNT) {
+                            this.min--
+                            this.second = TIME_COUNT;
+                        } 
+                        if(this.second === 0 && this.min === 0) {
+                            clearInterval(this.timer);
+                            this.timer = null;
+                            this.min = ''
+                            this.second = ''
+                        }
+                    }, 1000)
+                }
+                reqCreateOrder(this.selectAddress).then((data) => {}).catch()
                 this.isPay = true
                 this.orderVisible = false
+                this.checkAll = false
+                this.isIndeterminate = false
+                this.defaultAddress = ''
+                this.otherAddress = []
                 this.$store.dispatch('Timer/beginTimer')
                 for(var i = 0;i < this.orderList.length;i++) {
                     for(var j = 0;j < this.products.length;j++) {
@@ -436,6 +467,37 @@
                         }
                     }
                 }
+                this.orderList = []
+            },
+            cancelPay() {
+                clearInterval(this.timer);
+                this.timer = null;
+                this.min = ''
+                this.second = ''
+                this.isPay = false
+                const h = this.$createElement;
+                this.$notify({
+                    title: '未付款!',
+                    message: '您有未付款的订单!请到个人中心的订单中心继续付款!',
+                    type:'warning',
+                    showClose: false,
+                    duration: 0
+                });
+            },
+            payClose() {
+                clearInterval(this.timer);
+                this.timer = null;
+                this.min = ''
+                this.second = ''
+                this.isPay = false
+                const h = this.$createElement;
+                this.$notify({
+                    title: '未付款!',
+                    message: '您有未付款的订单！请到个人中心的订单中心继续付款!',
+                    type:'warning',
+                    showClose: false,
+                    duration: 0
+                });
             }
         }
     }

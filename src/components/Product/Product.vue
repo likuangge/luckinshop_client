@@ -89,15 +89,15 @@
           stock: this.product.stock,
         }).then(() => {
           this.count = 1
+          insertShopCart({
+            productId:this.product.productId,
+            count:this.count
+          }).then((data) => {}).catch(() => {
+            this.$message.error("网络连接异常")
+          })
           this.$message.success("成功加入购物车")
         }).catch(() => {
           this.$message.error("无法重复加入购物车")
-        })
-        insertShopCart({
-          productId:this.product.productId,
-          count:this.count
-        }).then((data) => {}).catch(() => {
-          this.$message.error("网络连接异常")
         })
       }
     }

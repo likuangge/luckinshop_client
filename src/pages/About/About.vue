@@ -42,7 +42,67 @@
         </el-main>
       </el-container>
     </el-tab-pane>
-    <el-tab-pane label="Order">配置管理</el-tab-pane>
+    <el-tab-pane label="订单中心">
+      <h2>订单中心</h2>
+      <el-tabs @tab-click="cheackOrder">
+        <el-tab-pane v-for="(state,index) in orderState" :label="state" :name="index">
+          <el-table :data=orderList style="width:100%" height="500">
+            <el-table-column type="expand">
+              <template slot-scope="props">
+                <el-row v-for="(product,index) in props.row.orderProducts" :key="index">
+                  <el-col :span="4">
+                    <el-avatar :src="picUrl(product.displayImage)" shape="square" :size="200"></el-avatar>
+                  </el-col>
+                  <el-col :span="4">
+                    <div class="name">
+                      {{product.productName}}
+                    </div>
+                    <div class="type">
+                      {{product.typeName}}
+                    </div>
+                    <div class="type">
+                      购买数量:{{product.count}}
+                    </div>
+                    <div style="margin-top:15px">
+                      <el-tag v-for="(keyword,index) in product.keywords" :key="index" size="medium">{{keyword}}</el-tag>
+                    </div>
+                  </el-col>
+                  <el-col :span="12">
+                    <!--div v-for="(property,index) in product.propertyName" :key="property" class="property">
+                      {{property}}:{{product.propertyValue[index]}}
+                    </div-->
+                    <el-form inline class="demo-table-expand" label-width="80px">
+                      <el-form-item v-for="(property,index) in product.propertyName" :key="index" :label=property>
+                        <span>{{product.propertyValue[index]}}</span>
+                      </el-form-item>
+                    </el-form>
+                  </el-col>
+                </el-row>
+              </template>
+            </el-table-column>
+            <el-table-column label="订单编号" prop="orderId"></el-table-column>
+            <el-table-column label="收货人姓名" prop="receiver"></el-table-column>
+            <el-table-column label="收货人手机" prop="telephone"></el-table-column>
+            <el-table-column label="收货人地址" prop="address"></el-table-column>
+            <el-table-column label="订单创建时间" prop="createTime"></el-table-column>
+            <el-table-column label="商品详情">请展开显示</el-table-column>
+            <el-table-column v-if="index === 2" width="100">
+              <template slot-scope="scope">
+                <el-link type="primary" @click="modify(scope.row)">立即付款</el-link>
+              </template>
+            </el-table-column>
+            <el-table-column v-if="index === 2" width="100">
+              <template slot-scope="scope">
+                <el-link type="primary" @click="deleteAddress(scope.row.addressId)">取消订单</el-link>
+              </template>
+            </el-table-column>
+            <el-table-column v-if="index === 2">
+              剩余时间:<span>{{min}}</span>分<span>{{second}}</span>秒
+            </el-table-column>
+          </el-table>
+        </el-tab-pane>
+      </el-tabs>
+    </el-tab-pane>
     <el-tab-pane label="Credit">角色管理</el-tab-pane>
     <el-tab-pane label="地址管理" name="address">
       <h2>我的收货地址</h2>
@@ -53,8 +113,8 @@
         <el-table-column prop="province" label="省/自治区" width="100"></el-table-column>
         <el-table-column prop="city" label="市/城区" width="100"></el-table-column>
         <el-table-column prop="district" label="区/县" width="100"></el-table-column>
-        <el-table-column prop="detail" label="详细地址" width="300"></el-table-column>
-        <el-table-column prop="isDefault" width="120">
+        <el-table-column prop="detail" label="详细地址" width="150"></el-table-column>
+        <el-table-column prop="isDefault" width="100">
           <template slot-scope="scope">
             <el-tag type="info" v-if="scope.row.isDefault">默认地址</el-tag>
             <el-link type="primary" v-else @click="setDefault(scope.row.addressId)">设为默认地址</el-link>
@@ -65,7 +125,7 @@
             <el-link type="primary" @click="modify(scope.row)">修改地址</el-link>
           </template>
         </el-table-column>
-        <el-table-column width="300">
+        <el-table-column width="100">
           <template slot-scope="scope">
             <el-link type="primary" @click="deleteAddress(scope.row.addressId)">删除地址</el-link>
           </template>
@@ -124,7 +184,7 @@
 </template>
 <script>
   import {mapState} from 'vuex'
-  import {modifyUserInfo,reqModifyCommit,reqAddAddress,reqGetAddress,reqSetDefault,reqDeleteAddress,reqModifyAddress} from '../../api'
+  import {modifyUserInfo,reqModifyCommit,reqAddAddress,reqGetAddress,reqSetDefault,reqDeleteAddress,reqModifyAddress,reqGetOrder} from '../../api'
   import axios from 'axios'
   import addressData from '../../assets/citys.json'
 
@@ -216,7 +276,12 @@
           telephone: '',
           pcd: [],
           detail: ''
-        }
+        },
+        orderList: [],
+        orderState: ['待收货','已取消','未付款'],
+        min: '',
+        second: '',
+        timer: null
       }
     },
     computed: {
@@ -244,6 +309,9 @@
       },
       change(e) {
         this.$forceUpdate()
+      },
+      picUrl(picName) {
+        return "/api/pictures/" + picName
       },
       modify(formName) {
         this.$refs[formName].validate((valid) => {
@@ -412,6 +480,32 @@
         this.changeAddress = false
         this.ModifyAddress.pcd = []
       },
+      cheackOrder(tab,event) {
+        if(tab.name === '2') {
+          if(!this.timer) {
+            this.timer = setInterval(() => {
+                if(this.second > 0 && this.second <= TIME_COUNT) {
+                    this.second--
+                }
+                if(this.second === 0 && this.min > 0 && this.min <= MIN_COUNT) {
+                    this.min--
+                    this.second = TIME_COUNT;
+                } 
+                if(this.second === 0 && this.min === 0) {
+                    clearInterval(state.timer);
+                    this.timer = null;
+                    this.min = ''
+                    this.second = ''
+                }
+            }, 1000)
+        }
+        }
+        reqGetOrder(tab.name).then((data) => {
+          this.orderList = data
+        }).catch(() => {
+          this.$message.error("获取订单失败")
+        })
+      }
     }
   }
 </script>
@@ -438,5 +532,27 @@
     width: 300px;
     height: 290px;
     display: block;
+  }
+  .name{
+    font-family: 等线;
+    font-size: 24px;
+  }
+  .type{
+    font-family: 仿宋;
+    font-size: 20px;
+    margin-top: 15px;
+  }
+  .property{
+    font-family: 仿宋;
+    font-size: 20px;
+  }
+  .demo-table-expand {
+    font-family: 仿宋;
+    font-size: 0;
+  }
+  .demo-table-expand .el-form-item {
+    margin-right: 0;
+    margin-bottom: 0;
+    width: 50%;
   }
 </style>
