@@ -1,18 +1,29 @@
 <template>
   <div>
-    <el-tabs :tab-position="tabPosition" style="height: 900px;" :value="activeType" @tab-click="handleClick" :closable="isAdmin">
-      <el-tab-pane v-for="(type,index) in types" :key="index" :label="type" :name="type">
-        <el-button v-show="isAdmin" size="small" style="float:right;margin-top:30px" @click="CreateProductFormVisible = true">
-          添加商品
-        </el-button>
-        <el-breadcrumb separator-class="el-icon-arrow-right">
-          <el-breadcrumb-item style="margin-top:20px">
-            <el-button type="text" style="font-size:25px" @click="Return">{{type}}</el-button>
-          </el-breadcrumb-item>
-          <el-breadcrumb-item style="margin-top:20px" v-show="isClick">
-            <el-button type="text" style="font-size:25px">{{clickProduct.productName}}</el-button>
-          </el-breadcrumb-item>
-        </el-breadcrumb>
+    <el-tabs :tab-position="tabPosition" style="height: 900px;" :value="activeType" @tab-click="handleClick">
+      <el-tab-pane v-for="(type,index) in types" :key="index" :label="type" :name="type" :disabled="type === '搜索结果'">
+        <el-row>
+          <el-col :span="16">
+            <el-breadcrumb separator-class="el-icon-arrow-right">
+              <el-breadcrumb-item style="margin-top:20px" disabled="type === '搜索结果'">
+                <el-button type="text" style="font-size:25px" @click="Return" :disabled="type === '搜索结果'">{{activeType}}</el-button>
+              </el-breadcrumb-item>
+              <el-breadcrumb-item style="margin-top:20px" v-show="isClick">
+                <el-button type="text" style="font-size:25px">{{clickProduct.productName}}</el-button>
+              </el-breadcrumb-item>
+            </el-breadcrumb>
+          </el-col>
+          <el-col :span="6">
+            <el-button v-show="isAdmin" style="float:right;margin-top:30px" @click="CreateProductTypeFormVisible = true">
+              添加商品种类
+            </el-button>
+          </el-col>
+          <el-col :span="2">
+            <el-button v-show="isAdmin" style="float:right;margin-top:30px" @click="CreateProductFormVisible = true">
+              添加商品
+            </el-button>
+          </el-col>
+        </el-row>
         <el-divider></el-divider>
         <el-row>
           <el-col :span="productSpanValue" v-for="(product, index) in products">
@@ -42,17 +53,12 @@
             </el-container>
           </el-col>
           <el-col :span="8">
-            <h2 v-show="isModify === false">{{clickProduct.productName}}</h2>
-            <el-input v-show="isModify === true" v-model="productName" :placeholder="clickProduct.productName" class="productname"></el-input>
+            <h2>{{clickProduct.productName}}</h2>
             <div>
-              <el-tag v-for="(keyword) in clickProduct.keywords" :key="keyword" size="medium" :closable="isModify === true">{{keyword}}</el-tag>
+              <el-tag v-for="(keyword) in clickProduct.keywords" :key="keyword" size="medium">{{keyword}}</el-tag>
             </div>
             <div class="price">
-              <p v-show="isModify === false">价格:￥{{clickProduct.price | numFilter}}</p>
-              <div v-show="isModify === true">
-                价格:￥
-                <el-input v-model="productPrice" :placeholder="clickProduct.price | numFilter" style="width:100px"></el-input>
-              </div>
+              <p>价格:￥{{clickProduct.price | numFilter}}</p>
               <p>库存:{{clickProduct.stock}}件</p>
               <p>销量:{{clickProduct.amount}}件!</p>
             </div> 
@@ -97,9 +103,6 @@
         </el-tabs>
       </el-tab-pane>
     </el-tabs>
-    <el-button v-show="isAdmin" size="small">
-      添加商品种类
-    </el-button>
     <el-dialog :title=dialogName :visible.sync="CreateProductFormVisible" @close="reset" center>
       <el-form :model="CreateProduct" label-width="100px">
         <el-form-item label="商品名称">
@@ -152,12 +155,25 @@
         <el-button @click.prevent="createProduct('CreateProduct')">创建商品</el-button>
       </div>
     </el-dialog>
+    <el-dialog title="新建商品类型" :visible.sync="CreateProductTypeFormVisible" @close="reset" center>
+      <el-form :model="CreateProductType">
+        <el-form-item label="商品类型名称" style="margin-left:75px">
+          <el-input class="accountInput" v-model="CreateProductType.name" placeholder="请输入商品类型名称" clearable></el-input>
+        </el-form-item>
+        <el-form-item label="商品类型规格" style="margin-left:75px">
+          <el-input class="accountInput" v-model="CreateProductType.property" placeholder="请输入商品类型规格" clearable></el-input>
+        </el-form-item>
+      </el-form>
+      <div slot="footer">
+        <el-button @click.prevent="createProductType()">创建商品类型</el-button>
+      </div>
+    </el-dialog>
   </div>
 </template>
 <script>
   import Product from '../../components/Product/Product'
   import {mapState} from 'vuex'
-  import {reqCreateProduct} from '../../api'
+  import {reqCreateProduct,AdminCreateProductType} from '../../api'
   import axios from 'axios'
 
   export default {
@@ -174,14 +190,10 @@
         productName: '',
         productPrice: '',
         CreateProductFormVisible: false,
+        CreateProductTypeFormVisible: false,
         dialogImageUrl: '',
         dialogVisible: false,
         clickUrl: '',
-        /*urls: ['../../../static/product_1.jfif',
-               '../../../static/product_2.jfif',
-               '../../../static/product_3.jfif',
-               '../../../static/product_4.jfif',
-               '../../../static/product_5.jfif'],*/
         CreateProduct: {
           name: '',
           price: '',
@@ -189,6 +201,10 @@
           keywords: [],
           properties: []
         },
+        CreateProductType: {
+          name: '',
+          property: ''
+        }
       }
     },
     computed: {
@@ -243,6 +259,8 @@
         this.CreateProduct.keywords = [],
         this.CreateProduct.properties = [],
         this.dialogImageUrl= []
+        this.CreateProductType.name = ''
+        this.CreateProductType.property = ''
       },
       handleRemove(file, fileList) {
         let url = '/api/productPictureDelete'
@@ -304,6 +322,7 @@
         return "/api/pictures/" + url
       },
       handleClick(tab, event) {
+        this.$store.dispatch('Products/getAllTypes')
         if(this.isClick) {
           this.$store.commit('ClickProduct/changeClick')
         }
@@ -315,6 +334,7 @@
         if(this.isClick) {
           this.$store.commit('ClickProduct/changeClick')
         }
+        this.$store.dispatch('Products/getProducts',this.activeType)
       },
       ModifyProduct() {
         this.isModify = !this.isModify
@@ -330,6 +350,44 @@
       plus() {
         if(this.count < this.clickProduct.stock) {
           this.count++
+        }
+      },
+      hasChineseComma() {
+        var ChineseComma = "，"
+        for (var i = 0; i < this.CreateProductType.property.length; i++) {
+          if (ChineseComma.indexOf(this.CreateProductType.property.substr(i, 1)) != -1) {
+            return true 
+          }
+        }
+        return false
+      },
+      createProductType() {
+        if(this.CreateProductType.name != '') {
+          if(this.CreateProductType.property != '') {
+            if(!this.hasChineseComma()) {
+              if(this.CreateProductType.property.charAt(this.CreateProductType.property.length - 1) != ',') {
+                AdminCreateProductType({
+                  typeName: this.CreateProductType.name,
+                  propertyName: this.CreateProductType.property
+                }).then(() => {
+                  this.$store.dispatch('Products/getAllTypes')
+                  this.CreateProductTypeFormVisible = false
+                  this.CreateProductType.name = ''
+                  this.CreateProductType.property = ''
+                }).catch(() => {
+
+                })
+              } else {
+                this.$message.warning("商品类型规格请勿以逗号结尾")
+              }
+            } else {
+              this.$message.warning("请勿输入中文逗号")
+            }
+          } else {
+            this.$message.warning("请输入商品类型规格")
+          }
+        } else {
+          this.$message.warning("请输入商品类型名称")
         }
       }
     }

@@ -7,7 +7,14 @@ const state = {
     username: '',
     telephone: '',
     email: '',
-    avatar: ''
+    avatar: '',
+    forbidden: '',
+    level: '',
+    benefit: '',
+    currentCredit: '',
+    totalCredit: '',
+    nextLevelCredit: '',
+    users: []
 }
 
 const mutations = {
@@ -31,6 +38,40 @@ const mutations = {
     },
     setAvatar(state, avatar) {
         state.avatar = avatar
+    },
+    setForbidden(state,forbidden) {
+        state.forbidden = forbidden
+    },
+    setLevel(state, level) {
+        state.level = level
+    },
+    setBenefit(state, benefit) {
+        state.benefit = benefit
+    },
+    setCurrentCredit(state, currentCredit) {
+        state.currentCredit = currentCredit
+    },
+    setTotalCredit(state, totalCredit) {
+        state.totalCredit = totalCredit
+    },
+    setNextLevelCredit(state, nextLevelCredit) {
+        state.nextLevelCredit = nextLevelCredit
+    },
+    setUsers(state,users) {
+        state.users = users
+    },
+    setUserInfo(state,userInfo) {
+        state.userId = userInfo.userId
+        state.username = userInfo.username
+        state.telephone = userInfo.telephone
+        state.email = userInfo.email
+        state.avatar = userInfo.avatar
+        state.forbidden = userInfo.forbidden
+        state.level = userInfo.level
+        state.benefit = userInfo.benefit
+        state.currentCredit = userInfo.currentCredit
+        state.totalCredit = userInfo.totalCredit
+        state.nextLevelCredit = userInfo.nextLevelCredit
     }
 }
 

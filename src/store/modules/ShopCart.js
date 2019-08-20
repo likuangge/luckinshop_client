@@ -16,6 +16,9 @@ const mutations = {
     substract(state, index){
         state.products[index].count--
         state.products[index].money -= state.products[index].price
+    },
+    clear(state) {
+        state.products = []
     }
 }
 

@@ -5,7 +5,6 @@ import Home from '../pages/Home/Home.vue'
 import About from '../pages/About/About.vue'
 import Admin from '../pages/Admin/Admin.vue'
 import Products from '../pages/Products/Products.vue'
-import Test from '../pages/Test/Test.vue'
 
 Vue.use(Router)
 
@@ -37,13 +36,6 @@ export default new Router({
         component: Products,
         meta: {
             showNavDetail: true,
-        }
-    },
-    {
-        path: '/test',
-        component: Test,
-        meta: {
-            showNavDetail: false,
         }
     },
     {

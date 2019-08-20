@@ -150,13 +150,27 @@
                                 请选择支付方式
                             </div>
                             <div>
-                                <el-radio v-model="paymethod" label="0">积分支付</el-radio>
-                                <el-radio v-model="paymethod" label="1">现金支付</el-radio>
+                                <div>
+                                    <el-radio v-model="paymethod" label="0" :disabled="currentCredit < 1000">
+                                        当前积分:{{currentCredit}}
+                                        <span v-show="currentCredit < 1000">(不足1000积分,无法使用优惠券)</span>
+                                        <div v-show="currentCredit >= 1000">(当前等级1000积分可兑换{{benefit}}元)</div>
+                                        <div v-show="currentCredit >= 1000">
+                                            请选择使用优惠券的数量:
+                                            <el-select v-model="benefitCount" style="width:75px">
+                                                <el-option v-for="(number,index) in benefits" :key="index" :label="number" :value="number"></el-option>
+                                            </el-select>
+                                        </div>
+                                    </el-radio>
+                                </div>
+                                <div>
+                                    <el-radio v-model="paymethod" label="1">不使用优惠券</el-radio>
+                                </div>
                             </div>
                             <el-row>
                                 <el-col :span="14">
                                     <div class="ordertotalmoney" v-if="paymethod === '0'">
-                                        共需{{order.totalMoney * 10}}积分
+                                        共需{{order.totalMoney - benefit * benefitCount | numFilter}}元
                                     </div>
                                     <div class="ordertotalmoney" v-else>
                                         共需{{order.totalMoney | numFilter}}元
@@ -206,8 +220,9 @@
 <script>
     import {mapState} from 'vuex'
     import axios from 'axios'
-    import {reqDeleteShopCart,reqAddCount,reqSubstractCount,reqAddAddress,reqGetAddress,reqClearOrderSession,reqCreateOrder} from '../../api'
+    import {reqDeleteShopCart,reqAddCount,reqSubstractCount,reqAddAddress,reqGetAddress,reqClearOrderSession,reqCreateOrder,reqCancelOrder,reqPay,reqInitLogin} from '../../api'
     import addressData from '../../assets/citys.json'
+    import { Notification } from 'element-ui'
 
     const MIN_COUNT = 5
     const TIME_COUNT = 59
@@ -234,7 +249,9 @@
                 otherAddress: [],
                 defaultAddress: '',
                 selectAddress: '',
-                paymethod: '0',
+                paymethod: '1',
+                benefitCount: 1,
+                benefits: [],
                 isPay: false,
                 min: '',
                 second: '',
@@ -251,7 +268,12 @@
             ...mapState({
                 products: state => state.ShopCart.products,
                 min: state=>state.Timer.min,
-                second: state=>state.Timer.second
+                second: state=>state.Timer.second,
+                forbidden: state=>state.Person.forbidden,
+                unpaidOrder: state=>state.Order.unpaidOrder,
+                benefit: state=>state.Person.benefit,
+                currentCredit: state=>state.Person.currentCredit,
+                totalCredit: state=>state.Person.totalCredit
             }),
             total() {
                 let total_money = 0;
@@ -266,6 +288,11 @@
         methods: {
             change(e) {
                 this.$forceUpdate()
+            },
+            useBenefit() {
+                if(this.benefitCount*1000 > this.currentCredit) {
+                    this.$message.error("积分不足!")
+                }
             },
             picUrl(picName) {
                 return "/api/pictures/" + picName
@@ -331,36 +358,44 @@
                 })  
             },
             submitOrder() {
-                reqGetAddress().then((data) => {
-                    let address = data
-                    for(var i = 0;i < address.length;i++) {
-                        if(address[i].isDefault) {
-                            this.defaultAddress = address[i]
-                            this.selectAddress = address[i].addressId
-                        } else {
-                            this.otherAddress.push(address[i])
+                if(this.forbidden === 1) {
+                    this.$message.error("您已被禁用,无法购买商品。")
+                } else {
+                    reqGetAddress().then((data) => {
+                        let address = data
+                        for(var i = 0;i < address.length;i++) {
+                            if(address[i].isDefault) {
+                                this.defaultAddress = address[i]
+                                this.selectAddress = address[i].addressId
+                            } else {
+                                this.otherAddress.push(address[i])
+                            }
                         }
-                    }
-                }).catch(() => {
-                    this.$message.error=("获取地址失败")
-                })
-                let url = '/api/order/submit'
-                let formData = new FormData()
-                formData.append("order",this.orderList)
+                    }).catch(() => {
+                        this.$message.error=("获取地址失败")
+                    })
+                    let url = '/api/order/submit'
+                    let formData = new FormData()
+                    formData.append("order",this.orderList)
 
-                axios({
-                    method: 'POST',
-                    url: url,
-                    headers: {
-                        'Content-Type': 'multipart/form-data;charset=UTF-8'
-                    },
-                    data:formData
-                }).then((data) => {
-                    this.order = data.data
-                    this.orderVisible = true
-                }).catch(() => {
-                    this.$message.error("获取订单失败")
-                })
+                    axios({
+                        method: 'POST',
+                        url: url,
+                        headers: {
+                            'Content-Type': 'multipart/form-data;charset=UTF-8'
+                        },
+                        data:formData
+                    }).then((data) => {
+                        this.order = data.data
+                        let num = Math.floor(this.currentCredit / 1000)
+                        for(var i = 1;i <= num;i++) {
+                            this.benefits.push(i)
+                        }
+                        this.orderVisible = true
+                    }).catch(() => {
+                        this.$message.error("获取订单失败")
+                    })
+                }
             },
             addAddress() {
                 this.addressVisible = true
@@ -447,14 +482,31 @@
                         }
                     }, 1000)
                 }
-                reqCreateOrder(this.selectAddress).then((data) => {}).catch()
+                let num
+                if(this.paymethod === '0') {
+                    num = this.benefitCount
+                } else {
+                    num = 0
+                }
+                reqCreateOrder(this.selectAddress,num).then((data) => {
+                    this.order = data
+                    this.$store.commit('Order/add')
+                    reqInitLogin().then((data) => {
+                        this.$store.commit('Person/setLevel', data.level)
+                        this.$store.commit('Person/setBenefit', data.benefit)
+                        this.$store.commit('Person/setCurrentCredit', data.currentCredit)
+                        this.$store.commit('Person/setTotalCredit', data.totalCredit)
+                        this.$store.commit('Person/setNextLevelCredit', data.nextLevelCredit)
+                    })
+                }).catch(() => {
+                    this.$message.error("创建订单失败")
+                })
                 this.isPay = true
                 this.orderVisible = false
                 this.checkAll = false
                 this.isIndeterminate = false
                 this.defaultAddress = ''
                 this.otherAddress = []
-                this.$store.dispatch('Timer/beginTimer')
                 for(var i = 0;i < this.orderList.length;i++) {
                     for(var j = 0;j < this.products.length;j++) {
                         if(this.orderList[i] === this.products[j].productId) {
@@ -469,20 +521,30 @@
                 }
                 this.orderList = []
             },
+            finishPay() {
+                reqPay(this.order.orderId).then((data) => {
+                    this.$store.commit('Order/minus')
+                    clearInterval(this.timer);
+                    this.timer = null;
+                    this.min = ''
+                    this.second = ''
+                    this.isPay = false
+                }).catch(() => {
+
+                })
+            },
             cancelPay() {
-                clearInterval(this.timer);
-                this.timer = null;
-                this.min = ''
-                this.second = ''
-                this.isPay = false
-                const h = this.$createElement;
-                this.$notify({
-                    title: '未付款!',
-                    message: '您有未付款的订单!请到个人中心的订单中心继续付款!',
-                    type:'warning',
-                    showClose: false,
-                    duration: 0
-                });
+                reqCancelOrder(this.order.orderId).then(() => {
+                    this.$store.commit('Order/minus')
+                    clearInterval(this.timer);
+                    this.timer = null;
+                    this.min = ''
+                    this.second = ''
+                    this.isPay = false
+                }).catch()
+            },
+            message() {
+                return '您有' + this.unpaidOrder +'个未付款的订单！请到个人中心的订单中心继续付款!'
             },
             payClose() {
                 clearInterval(this.timer);
@@ -490,15 +552,21 @@
                 this.min = ''
                 this.second = ''
                 this.isPay = false
-                const h = this.$createElement;
-                this.$notify({
-                    title: '未付款!',
-                    message: '您有未付款的订单！请到个人中心的订单中心继续付款!',
-                    type:'warning',
-                    showClose: false,
-                    duration: 0
-                });
+                this.showShopCart = false
+                Notification.closeAll()
+                if(this.unpaidOrder > 0){
+                    this.$notify({
+                        title: '未付款!',
+                        dangerouslyUseHTMLString: true,
+                        message: this.message(),
+                        type:'warning',
+                        showClose: false,
+                        duration: 0,
+                        position: 'bottom-left'
+                    });
+                }
             }
+            
         }
     }
 </script>

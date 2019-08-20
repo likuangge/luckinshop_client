@@ -42,15 +42,15 @@
         </el-main>
       </el-container>
     </el-tab-pane>
-    <el-tab-pane label="订单中心">
+    <el-tab-pane label="订单中心" name="order">
       <h2>订单中心</h2>
-      <el-tabs @tab-click="cheackOrder">
-        <el-tab-pane v-for="(state,index) in orderState" :label="state" :name="index">
+      <el-tabs @tab-click="checkOrder" v-model="activeOrder">
+        <el-tab-pane v-for="(state,index) in orderState" :key="index" :label="state" :name="index">
           <el-table :data=orderList style="width:100%" height="500">
             <el-table-column type="expand">
               <template slot-scope="props">
                 <el-row v-for="(product,index) in props.row.orderProducts" :key="index">
-                  <el-col :span="4">
+                  <el-col :span="6">
                     <el-avatar :src="picUrl(product.displayImage)" shape="square" :size="200"></el-avatar>
                   </el-col>
                   <el-col :span="4">
@@ -86,24 +86,51 @@
             <el-table-column label="收货人地址" prop="address"></el-table-column>
             <el-table-column label="订单创建时间" prop="createTime"></el-table-column>
             <el-table-column label="商品详情">请展开显示</el-table-column>
-            <el-table-column v-if="index === 2" width="100">
+            <el-table-column v-if="index === 0" width="100">
               <template slot-scope="scope">
-                <el-link type="primary" @click="modify(scope.row)">立即付款</el-link>
+                <el-link type="primary" @click="pay(scope.row.orderId)">立即付款</el-link>
               </template>
             </el-table-column>
-            <el-table-column v-if="index === 2" width="100">
+            <el-table-column v-if="index === 0" width="100">
               <template slot-scope="scope">
-                <el-link type="primary" @click="deleteAddress(scope.row.addressId)">取消订单</el-link>
+                <el-link type="primary" @click="cancelOrder(scope.row.orderId)">取消订单</el-link>
+              </template>
+            </el-table-column>
+            <el-table-column v-if="index === 0">
+              <template slot-scope="scope">
+                剩余时间:{{scope.row.djs}}
               </template>
             </el-table-column>
             <el-table-column v-if="index === 2">
-              剩余时间:<span>{{min}}</span>分<span>{{second}}</span>秒
+              <template slot-scope="scope">
+                <el-button type="primary" @click="receive(scope.row.orderId)">确认收货</el-button>
+              </template>
             </el-table-column>
           </el-table>
         </el-tab-pane>
       </el-tabs>
     </el-tab-pane>
-    <el-tab-pane label="Credit">角色管理</el-tab-pane>
+    <el-tab-pane label="积分详情" name="credit">
+      <el-row>
+        <el-col :span="3">
+          <h2>积分详情</h2>
+        </el-col>
+        <el-col :span="4">
+          <el-tag style="margin-top:20px">当前积分:{{currentCredit}}</el-tag>
+        </el-col>
+      </el-row>
+      <el-divider></el-divider>
+      <el-timeline>
+        <el-timeline-item v-for="(creditInfo, index) in creditList" :key="index" :timestamp="creditInfo.changeTime">
+          <div v-if="creditInfo.action === 0">
+            增加{{creditInfo.credit}}
+          </div>
+          <div v-else>
+            使用{{creditInfo.credit}}
+          </div>
+        </el-timeline-item>
+      </el-timeline>
+    </el-tab-pane>
     <el-tab-pane label="地址管理" name="address">
       <h2>我的收货地址</h2>
       <el-divider></el-divider>
@@ -184,11 +211,23 @@
 </template>
 <script>
   import {mapState} from 'vuex'
-  import {modifyUserInfo,reqModifyCommit,reqAddAddress,reqGetAddress,reqSetDefault,reqDeleteAddress,reqModifyAddress,reqGetOrder} from '../../api'
+  import {modifyUserInfo,reqModifyCommit,reqAddAddress,reqGetAddress,reqSetDefault,reqDeleteAddress,reqModifyAddress,reqGetOrder,reqCancelOrder,reqGetTime,reqPay,reqReceive,reqCreditInfo} from '../../api'
   import axios from 'axios'
   import addressData from '../../assets/citys.json'
+  import { Notification } from 'element-ui'
 
-  const url = "/api/pictures/"
+  function InitTime(endtime){
+    var mm,ss = null
+    var time = endtime
+    if(time<=0){
+      return '结束'
+    }else{
+      mm = Math.floor(time / 60);
+      ss = time - mm*60;
+      var str = mm+"分"+ss+"秒";
+      return str;
+    }
+  }
 
   export default {
     data() {
@@ -277,28 +316,99 @@
           pcd: [],
           detail: ''
         },
+        activeOrder: 0,
         orderList: [],
-        orderState: ['待收货','已取消','未付款'],
-        min: '',
-        second: '',
-        timer: null
+        orderState: ['未付款','待发货','待收货','已完成','已取消'],
+        time: [],
+        timer: null,
+        creditList: []
       }
     },
     computed: {
       ...mapState({
+        isLogin: state=>state.Person.isLogin,
         userId: state=>state.Person.userId,
         username: state=>state.Person.username,
         telephone: state=>state.Person.telephone,
         email: state=>state.Person.email,
-        avatar: state=>state.Person.avatar
+        avatar: state=>state.Person.avatar,
+        unpaidOrder: state=>state.Order.unpaidOrder,
+        unreceiveOrder: state=>state.Order.unreceiveOrder,
+        currentCredit: state=>state.Person.currentCredit
       }),
       userAvatar: function(){
         let url = "/api/pictures/" + this.avatar
         return url
       },
     },
+    mounted() {
+      if(!this.isLogin) {
+        this.$router.push('/home')
+        this.$message.warning("请先登录")
+      }
+    },
     methods: {
       handleClick(tab, event) {
+        if(tab.name === "order") {
+          if(this.unpaidOrder > 0){
+            this.activeOrder = 0
+            reqGetOrder(0).then((data) => {
+              let tempOrderList = data
+              reqGetTime().then((timedata) => {
+                this.time = timedata
+                tempOrderList.map((obj,index)=>{
+                  this.$set(obj,"restTime",this.time[index]);
+                })
+                tempOrderList.map((obj,index)=>{
+                  this.$set(obj,"djs",InitTime(this.time[index]));
+                })
+                this.orderList = tempOrderList
+                if(!this.timer) {
+                  this.timer = setInterval(()=> {
+                    for (var key in this.orderList) {
+                      var rightTime = parseInt(this.orderList[key]["restTime"]);
+                      if (rightTime > 0) {
+                        var mm = Math.floor(rightTime/60);
+                        var ss = rightTime - mm*60;
+                      }
+                      if(ss > 0 && ss <= 59) {
+                        ss--
+                        this.orderList[key]["restTime"]--
+                        this.orderList[key]["djs"] = mm + "分" + ss + "秒";
+                      }
+                      if(ss === 0 && mm > 0 && mm <= 5) {
+                        mm--
+                        ss = 59
+                        this.orderList[key]["restTime"]--
+                        this.orderList[key]["djs"] = mm + "分" + ss + "秒";
+                      } 
+                      if(ss <= 0 && mm <= 0) {
+                        clearInterval(this.timer);
+                        this.timer = null;
+                        mm = 0
+                        ss = 0
+                      }
+                    }
+                  }, 1000)
+                }
+              })
+            }).catch(() => {
+              this.$message.error("获取订单失败")
+            })
+          } else {
+            this.activeOrder = 2;
+            reqGetOrder(2).then((data) => {
+              this.orderList = data
+            }).catch(() => {
+              this.$message.error("获取订单失败")
+            })
+          }
+        }
+        if(tab.name === "credit") {
+          reqCreditInfo().then((data) => {
+            this.creditList = data
+          })
+        }
         if(tab.name === "address") {
           reqGetAddress().then((data) => {
             this.allAddress = data
@@ -480,30 +590,130 @@
         this.changeAddress = false
         this.ModifyAddress.pcd = []
       },
-      cheackOrder(tab,event) {
-        if(tab.name === '2') {
-          if(!this.timer) {
-            this.timer = setInterval(() => {
-                if(this.second > 0 && this.second <= TIME_COUNT) {
-                    this.second--
-                }
-                if(this.second === 0 && this.min > 0 && this.min <= MIN_COUNT) {
-                    this.min--
-                    this.second = TIME_COUNT;
-                } 
-                if(this.second === 0 && this.min === 0) {
-                    clearInterval(state.timer);
-                    this.timer = null;
-                    this.min = ''
-                    this.second = ''
-                }
-            }, 1000)
+      checkOrder(tab,event) {
+        if(tab.name === 0) {
+          reqGetOrder(0).then((data) => {
+            let tempOrderList = data
+            reqGetTime().then((timedata) => {
+              this.time = timedata
+              tempOrderList.map((obj,index)=>{
+                this.$set(obj,"restTime",this.time[index]);
+              })
+              tempOrderList.map((obj,index)=>{
+                this.$set(obj,"djs",InitTime(this.time[index]));
+              })
+              this.orderList = tempOrderList
+              if(!this.timer) {
+                this.timer = setInterval(()=> {
+                  for (var key in this.orderList) {
+                    var rightTime = parseInt(this.orderList[key]["restTime"]);
+                    if (rightTime > 0) {
+                      var mm = Math.floor(rightTime/60);
+                      var ss = rightTime - mm*60;
+                    }
+                    if(ss > 0 && ss <= 59) {
+                      ss--
+                      this.orderList[key]["restTime"]--
+                      this.orderList[key]["djs"] = mm + "分" + ss + "秒";
+                    }
+                    if(ss === 0 && mm > 0 && mm <= 5) {
+                      mm--
+                      ss = 59
+                      this.orderList[key]["restTime"]--
+                      this.orderList[key]["djs"] = mm + "分" + ss + "秒";
+                    } 
+                    if(ss <= 0 && mm <= 0) {
+                      clearInterval(this.timer);
+                      this.timer = null;
+                      mm = 0
+                      ss = 0
+                    }
+                  }
+                }, 1000)
+              }
+            })
+          }).catch(() => {
+            this.$message.error("获取订单失败")
+          })
+        } else {
+          reqGetOrder(tab.name).then((data) => {
+            this.orderList = data
+          }).catch(() => {
+            this.$message.error("获取订单失败")
+          })
         }
-        }
-        reqGetOrder(tab.name).then((data) => {
-          this.orderList = data
+      },
+      messageUnpaid() {
+        return '您有' + this.unpaidOrder +'个未付款的订单！请到个人中心的订单中心继续付款!'
+      },
+      messageUnreceive() {
+        return this.unreceiveOrder +'个未收货的订单！请到个人中心的订单中心确认收货!'
+      },
+      cancelOrder(orderId) {
+        reqCancelOrder(orderId).then(() => {
+          reqGetOrder(4).then((data) => {
+            this.activeOrder = 4
+            this.$store.commit('Order/minus')
+            this.orderList = data
+            Notification.closeAll()
+            if(this.unpaidOrder > 0) {
+              this.$notify({
+                title: '未付款!',
+                dangerouslyUseHTMLString: true,
+                message: this.messageUnpaid(),
+                type:'warning',
+                showClose: false,
+                duration: 0,
+                position: 'bottom-left'
+              });
+            }
+          }).catch(() => {
+            this.$message.error("获取订单失败")
+          })
+        }).catch()
+      },
+      pay(orderId) {
+        reqPay(orderId).then((data) => {
+          reqGetOrder(1).then((data) => {
+            this.activeOrder = 1
+            this.$store.commit('Order/minus')
+            this.orderList = data
+            Notification.closeAll()
+            if(this.unpaidOrder > 0) {
+              this.$notify({
+                title: '未付款!',
+                dangerouslyUseHTMLString: true,
+                message: this.messageUnpaid(),
+                type:'warning',
+                showClose: false,
+                duration: 0,
+                position: 'bottom-left'
+              });
+            }
+          })
         }).catch(() => {
-          this.$message.error("获取订单失败")
+
+        })
+      },
+      receive(orderId) {
+        reqReceive(orderId).then(() => {
+          reqGetOrder(3).then((data) => {
+            this.activeOrder = 3
+            this.$store.commit('Order/unreceiveMinus')
+            this.orderList = data
+            Notification.closeAll()
+            if(this.unreceiveOrder > 0) {
+              this.$notify({
+                title: '未收货!',
+                dangerouslyUseHTMLString: true,
+                message: this.messageUnreceive(),
+                type:'warning',
+                showClose: false,
+                duration: 0,
+                position: 'bottom-left'
+              });
+            }
+          })
         })
       }
     }

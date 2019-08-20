@@ -68,7 +68,10 @@
         }
       },
       showDetail() {
+        this.$store.dispatch('Products/getAllTypes')
         this.$store.commit('ClickProduct/changeClick')
+        this.$store.commit('Products/updateActiveType',this.product.typeName)
+        this.$store.dispatch('Products/getPropertyName',this.product.typeName)
         this.$store.commit('ClickProduct/updateClickProduct', this.product)
         this.$store.commit('ClickProduct/updateClickProductProperties', this.productProperties)
         reqGetProductPictures(this.product.productId).then((data) => {
@@ -88,11 +91,12 @@
           money: this.count*this.product.price,
           stock: this.product.stock,
         }).then(() => {
-          this.count = 1
           insertShopCart({
             productId:this.product.productId,
             count:this.count
-          }).then((data) => {}).catch(() => {
+          }).then((data) => {
+            this.count = 1
+          }).catch(() => {
             this.$message.error("网络连接异常")
           })
           this.$message.success("成功加入购物车")

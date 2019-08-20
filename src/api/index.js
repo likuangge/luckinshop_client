@@ -3,7 +3,7 @@ import ajax from './ajax'
 const BASE_URL = '/api'
 
 // 1、普通用户登录
-export const userLogin = ({account, password, role}) => ajax(BASE_URL+'/login', {account, password, role}, 'POST')
+export const reqLogin = ({account, password, role}) => ajax(BASE_URL+'/login', {account, password, role}, 'POST')
 
 // 2、判断用户最近是否登录
 export const reqInitLogin = () => ajax(BASE_URL+'/user/init')
@@ -11,8 +11,8 @@ export const reqInitLogin = () => ajax(BASE_URL+'/user/init')
 // 3、修改用户信息
 export const modifyUserInfo = ({username, telephone, email}) => ajax(BASE_URL+'/user/modify', {username, telephone, email}, 'POST')
 
-// 4、管理员用户登录
-export const adminLogin = ({account, password, role}) => ajax(BASE_URL+'/login', {account, password, role}, 'POST')
+// 4、登出
+export const reqLogout = () => ajax(BASE_URL+'/user/logout')
 
 // 5、判断管理员最近是否登录
 export const reqAdminInitLogin = () => ajax(BASE_URL+'/admin/init')
@@ -69,7 +69,7 @@ export const reqModifyAddress = ({addressId,receiver,telephone,province,city,dis
 export const reqClearOrderSession = (orderId) => ajax(BASE_URL+'/order/clear',{orderId})
 
 // 23、创建订单
-export const reqCreateOrder = (addressId) => ajax(BASE_URL+'/order/create',{addressId})
+export const reqCreateOrder = (addressId,benefitCount) => ajax(BASE_URL+'/order/create',{addressId,benefitCount})
 
 // 24、获取订单过期时间
 export const reqGetTime = () => ajax(BASE_URL+'/order/gettime')
@@ -77,8 +77,86 @@ export const reqGetTime = () => ajax(BASE_URL+'/order/gettime')
 // 25、获得相应用户订单
 export const reqGetOrder = (state) => ajax(BASE_URL+'/order/get',{state})
 
-// 2、注册
-export const reqSignup = ({account, name, password, code, mail}) => ajax(BASE_URL+'/user/signup', {account, name, password, code, mail}, 'POST')
+// 26、是否有未支付的订单
+export const reqUnpaid = () => ajax(BASE_URL+'/order/getunpaid')
+
+// 27、取消订单
+export const reqCancelOrder = (orderId) => ajax(BASE_URL+'/order/cancel',{orderId})
+
+// 28、付款
+export const reqPay = (orderId) => ajax(BASE_URL+'/order/pay',{orderId})
+
+// 29、管理员获得订单
+export const AdminGetOrder = (state) => ajax(BASE_URL+'/admin/getorder',{state})
+
+// 30、是否有未发货的订单
+export const reqUnsend = () => ajax(BASE_URL+'/admin/getunsend')
+
+// 31、管理员发货
+export const AdminSendOrder = (orderId) => ajax(BASE_URL+'/admin/send',{orderId})
+
+// 32、是否有未收货的订单
+export const reqUnreceive = () => ajax(BASE_URL+'/order/getunreceive')
+
+// 33、确认收货
+export const reqReceive = (orderId) => ajax(BASE_URL+'/order/receive',{orderId})
+
+// 34、获取积分变更详情
+export const reqCreditInfo = () => ajax(BASE_URL+'/user/getcreditinfo')
+
+// 35、管理员获取积分规则
+export const AdminCreditRule = () => ajax(BASE_URL+'/admin/rule')
+
+// 36、管理员获取用户信息
+export const AdminUserInfo = () => ajax(BASE_URL+'/admin/user')
+
+// 37、管理员更改用户状态
+export const AdminChangeState = (userId) => ajax(BASE_URL+'/admin/state',{userId})
+
+// 38、管理员获取商品信息
+export const AdminGetProduct = () => ajax(BASE_URL+'/admin/product')
+
+// 39、注册
+export const reqSignup = ({telephone, userName, password, code, email}) => ajax(BASE_URL+'/user/signup', {telephone, userName, password, code, email}, 'POST')
+
+// 40、请求手机短信验证码
+export const reqPhoneCode = (telephone) => ajax(BASE_URL+'/user/code', {telephone})
+
+// 41、搜索商品
+export const reqSearchProduct = (type,filter) => ajax(BASE_URL+'/product/search',{type,filter})
+
+// 42、管理员搜索订单
+export const AdminSearchOrder = (type,filter) => ajax(BASE_URL+'/admin/searchorder', {type,filter})
+
+// 43、管理员获取用户操作记录
+export const AdminUserRecord = () => ajax(BASE_URL+'/admin/userrecord')
+
+// 44、管理员获取订单操作记录
+export const AdminOrderRecord = () => ajax(BASE_URL+'/admin/orderrecord')
+
+// 45、管理员获取商品操作记录
+export const AdminProductRecord = () => ajax(BASE_URL+'/admin/productrecord')
+
+// 46、管理员获取商品类型信息
+export const AdminProductType = () => ajax(BASE_URL+'/admin/producttype')
+
+// 47、管理员更改商品类型状态
+export const AdminChangeTypeState = (typeId) => ajax(BASE_URL+'/admin/typestate',{typeId})
+
+// 48、管理员更改商品类型规格
+export const AdminChangeProperty = (propertyName,typeId) => ajax(BASE_URL+'/admin/changeproperty',{propertyName,typeId})
+
+// 49、管理员增加商品类型
+export const AdminCreateProductType = ({typeName,propertyName}) => ajax(BASE_URL+'/admin/createtype',{typeName,propertyName},'POST')
+
+// 50、管理员更改商品关键字
+export const AdminChangeKeywords = (keywords,productId) => ajax(BASE_URL+'/admin/changekeywords',{keywords,productId})
+
+// 51、管理员更改商品价格
+export const AdminChangePrice = (price,productId) => ajax(BASE_URL+'/admin/changeprice',{price,productId})
+
+// 51、管理员更改商品库存
+export const AdminChangeStock = (stock,productId) => ajax(BASE_URL+'/admin/changestock',{stock,productId})
 
 // 3、改变用户状态
 export const reqChangeUser = (account) => ajax(BASE_URL+'/user/change', {account}, 'POST')
@@ -136,20 +214,11 @@ export const reqGetBookDetail = (ISBN) => ajax(BASE_URL+'/book/detail', {ISBN})
 // 14、删除书籍
 export const reqDeleteBook = (ISBN) => ajax(BASE_URL+'/book/delete', {ISBN})
 
-// 16、用户登出
-export const reqLogout = () => ajax(BASE_URL+'/logout')
-
-// 17、搜索订单
-export const reqSearchOrder = (filter) => ajax(BASE_URL+'/order/search', {filter})
-
 // 18、日期筛选订单
 export const reqDateOrderFilter = (beginDate, endDate, account) => ajax(BASE_URL+'/order/date', {beginDate, endDate, account})
 
 // 19、日期筛选订单详情
 export const reqDateDetailOrderFilter = (beginDate, endDate, account) => ajax(BASE_URL+'/order/dateDetail', {beginDate, endDate, account})
 
-// 20、请求手机短信验证码
-export const reqPhoneCode = (phoneNumber) => ajax(BASE_URL+'/user/code', {phoneNumber})
-
 // 21、请求发送找回密码的电子邮件
-export const reqSendMail = (phoneNumber) => ajax(BASE_URL+'/mail', {phoneNumber})
+export const reqSendMail = (email) => ajax(BASE_URL+'/mail',{email})

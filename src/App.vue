@@ -10,7 +10,7 @@
 import {mapState} from 'vuex'
 import Navbar from './components/Navbar/Navbar'
 import ShopCart from './components/ShopCart/ShopCart'
-import {reqInitLogin,reqAdminInitLogin,reqInitShopCart} from './api'
+import {reqInitLogin,reqAdminInitLogin,reqInitShopCart,reqUnpaid,reqUnsend,reqUnreceive,AdminUserInfo} from './api'
 
 export default {
   name: 'App',
@@ -22,17 +22,58 @@ export default {
     reqInitLogin().then((data) => {
       if (data.isLogin) {
         this.$store.commit('Person/changeLogin')
-        this.$store.commit('Person/setUserId', data.userId)
-        this.$store.commit('Person/setUsername', data.username)
-        this.$store.commit('Person/setTelephone', data.telephone)
-        this.$store.commit('Person/setEmail', data.email)
-        this.$store.commit('Person/setAvatar', data.avatar)
+        this.$store.commit('Person/setUserInfo',data)
+        reqUnpaid().then((data) => {
+          if(data > 0) {
+            this.$store.commit('Order/changeUnpaidOrder', data)
+            this.$notify({
+              title: '未付款!',
+              dangerouslyUseHTMLString: true,
+              message: this.messageUnpaid(),
+              type:'warning',
+              showClose: false,
+              duration: 0,
+              position: 'bottom-left'
+            });
+          }
+        })
+        reqUnreceive().then((data) => {
+          if(data > 0) {
+            this.$store.commit('Order/changeUnreceiveOrder', data)
+            this.$notify({
+              title: '未收货!',
+              dangerouslyUseHTMLString: true,
+              message: this.messageUnreceive(),
+              type:'warning',
+              showClose: false,
+              duration: 0,
+              position: 'bottom-left'
+            });
+          }
+        })
       } else {
         reqAdminInitLogin().then((data) => {
           if(data.isLogin){
             this.$store.commit('Person/changeAdmin')
             this.$store.commit('Person/changeLogin')
             this.$store.commit('Person/setUsername', data.username)
+            reqUnsend().then((data) => {
+              if(data > 0) {
+                this.$store.commit('Order/changeUnsendOrder', data)
+                this.$notify({
+                  title: '未发货!',
+                  dangerouslyUseHTMLString: true,
+                  message: this.messageUnsend(),
+                  type:'warning',
+                  showClose: false,
+                  duration: 0,
+                  position: 'bottom-left'
+                });
+              }
+            })
+            AdminUserInfo().then((data) => {
+              this.$store.commit('Person/setUsers',data)
+            })
           } else {
 
           }
@@ -50,7 +91,21 @@ export default {
   computed: {
     ...mapState({
       isAdmin: state=>state.Person.isAdmin,
-    }),
+      unpaidOrder: state=>state.Order.unpaidOrder,
+      unsendOrder: state=>state.Order.unsendOrder,
+      unreceiveOrder: state=>state.Order.unreceiveOrder
+    })
+  },
+  methods: {
+    messageUnpaid() {
+      return '您有' + this.unpaidOrder +'个未付款的订单！请到个人中心的订单中心继续付款!'
+    },
+    messageUnsend() {
+      return this.unsendOrder +'个未发货的订单！请到订单管理进行发货!'
+    },
+    messageUnreceive() {
+      return this.unreceiveOrder +'个未收货的订单！请到个人中心的订单中心确认收货!'
+    }
   }
 }
 </script>
