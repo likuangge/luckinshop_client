@@ -155,8 +155,29 @@ export const AdminChangeKeywords = (keywords,productId) => ajax(BASE_URL+'/admin
 // 51、管理员更改商品价格
 export const AdminChangePrice = (price,productId) => ajax(BASE_URL+'/admin/changeprice',{price,productId})
 
-// 51、管理员更改商品库存
+// 52、管理员更改商品库存
 export const AdminChangeStock = (stock,productId) => ajax(BASE_URL+'/admin/changestock',{stock,productId})
+
+// 53、管理员更改商品状态
+export const AdminChangeProductState = (productId) => ajax(BASE_URL+'/admin/productstate',{productId})
+
+// 54.管理员更改商品规格
+export const AdminChangePropertyValue = (propertyValue,productId) => ajax(BASE_URL+'/admin/propertyvalue',{propertyValue,productId})
+
+// 55、系统自动取消订单
+export const reqSysCancelOrder = (orderId) => ajax(BASE_URL+'/order/syscancel',{orderId})
+
+// 56、管理员修改商品展示图片
+export const AdminModifyProductDisplayImage = (productId) => ajax(BASE_URL+'/admin/modifyProductDisplayImage',{productId})
+
+// 57、管理员修改商品详情图片
+export const modifyProductDetailPicture = (picId) => ajax(BASE_URL+'/admin/modifyProductDetailPicture',{picId})
+
+// 58、管理员删除商品详情图片
+export const AdminDeleteProductDetailImage = (picId) => ajax(BASE_URL+'/admin/deleteProductDetailPicture',{picId})
+
+// 59、管理员增加商品详情图片
+export const AdminAddProductDetailImage = (roleId) => ajax(BASE_URL+'/admin/addProductDetailPicture',{roleId})
 
 // 3、改变用户状态
 export const reqChangeUser = (account) => ajax(BASE_URL+'/user/change', {account}, 'POST')

@@ -41,8 +41,8 @@
       </el-row>
       <el-tabs @tab-click="checkOrder" v-model="activeOrder">
         <el-tab-pane v-for="(state,index) in orderState" :key="index" :label="state" :name="index">
-          <el-table :data=orderList style="width:100%" height="500">
-            <el-table-column type="index"></el-table-column>
+          <el-table :data=orderList style="width:100%" height="450">
+            <el-table-column type="index" fixed="left"></el-table-column>
             <el-table-column type="expand">
               <template slot-scope="props">
                 <el-row v-for="(product,index) in props.row.orderProducts" :key="index">
@@ -76,12 +76,24 @@
                 </el-row>
               </template>
             </el-table-column>
-            <el-table-column label="订单编号" prop="orderId"></el-table-column>
-            <el-table-column label="所属用户" prop="userTelephone"></el-table-column>
-            <el-table-column label="收货人姓名" prop="receiver"></el-table-column>
-            <el-table-column label="收货人手机" prop="telephone"></el-table-column>
-            <el-table-column label="收货人地址" prop="address"></el-table-column>
-            <el-table-column label="订单创建时间" prop="createTime"></el-table-column>
+            <el-table-column label="订单编号" prop="orderId" width="168"></el-table-column>
+            <el-table-column label="所属用户" prop="userTelephone" width="125"></el-table-column>
+            <el-table-column label="收货人姓名" prop="receiver" width="100"></el-table-column>
+            <el-table-column label="收货人手机" prop="telephone" width="125"></el-table-column>
+            <el-table-column label="收货人地址" prop="address" width="325"></el-table-column>
+            <el-table-column label="订单总价格" width="100">
+              <template slot-scope="scope">
+                <p>{{scope.row.totalMoneyBeforeBenefit | numFilter}}</p>
+              </template>
+            </el-table-column>
+            <el-table-column label="使用优惠券数量" prop="benefitCount" width="150"></el-table-column>
+            <el-table-column label="优惠金额" prop="benefitMoney"></el-table-column>
+            <el-table-column label="实付金额">
+              <template slot-scope="scope">
+                <p>{{scope.row.totalMoneyBeforeBenefit - scope.row.benefitMoney | numFilter}}</p>
+              </template>
+            </el-table-column>
+            <el-table-column label="订单创建时间" prop="createTime" width="175"></el-table-column>
             <el-table-column label="订单状态" v-if="state === '搜索结果'" :filters="[{ text:'待发货',value:1},{ text:'待收货',value:2},{ text:'已完成',value:3},{ text:'已取消',value:4}]" :filter-method="filterMethod" filter-placement="bottom-end">
               <template slot-scope="scope">
                 <p v-show="scope.row.state === 1">待发货</p>
@@ -90,8 +102,8 @@
                 <p v-show="scope.row.state === 4">已取消</p>
               </template>
             </el-table-column>
-            <el-table-column label="商品详情">请展开显示</el-table-column>
-            <el-table-column v-if="index === 0">
+            <el-table-column label="商品详情" width="100">请展开显示</el-table-column>
+            <el-table-column v-if="index === 0" width="100">
               <template slot-scope="scope">
                 <el-button type="primary" @click="Send(scope.row.orderId)">发货</el-button>
               </template>
@@ -172,7 +184,7 @@
             </el-table-column>
             <el-table-column width="150">
               <template slot-scope="scope">
-                <el-button type="primary" v-if="!showStock || scope.$index != sindex" @click="changeStock(scope.row.stock,scope.$index)">修改价格</el-button>
+                <el-button type="primary" v-if="!showStock || scope.$index != sindex" @click="changeStock(scope.row.stock,scope.$index)">修改库存</el-button>
                 <el-button type="primary" v-if="showStock && scope.$index === sindex" @click="confirmChangeStock(scope.row.productId)">确认修改</el-button>
               </template>
             </el-table-column>
@@ -180,6 +192,12 @@
               <template slot-scope="scope">
                 <p v-if="scope.row.state === 0">已上架</p>
                 <p v-else>已下架</p>
+              </template>
+            </el-table-column>
+            <el-table-column>
+              <template slot-scope="scope">
+                <el-button v-if="scope.row.state === 0" @click="changeProductState(scope.row.productId)">下架</el-button>
+                <el-button v-else @click="changeProductState(scope.row.productId)">上架</el-button>
               </template>
             </el-table-column>
           </el-table>
@@ -215,6 +233,13 @@
                 <p v-else>管理员</p>
               </template>
             </el-table-column>
+            <el-table-column label="用户角色" v-if="type === '订单操作记录'">
+              <template slot-scope="scope">
+                <p v-if="scope.row.role === 0">用户</p>
+                <p v-if="scope.row.role === 1">管理员</p>
+                <p v-if="scope.row.role === 2">系统</p>
+              </template>
+            </el-table-column>
             <el-table-column label="用户角色" v-if="type === '商品操作记录'">管理员</el-table-column>
             <el-table-column label="用户账号" prop="account"></el-table-column>
             <el-table-column label="用户行为" v-if="type === '用户操作记录'">
@@ -240,6 +265,13 @@
                 <p v-if="scope.row.action === 3">修改商品关键字</p>
                 <p v-if="scope.row.action === 4">修改商品价格</p>
                 <p v-if="scope.row.action === 5">修改商品库存</p>
+                <p v-if="scope.row.action === 6">修改商品状态</p>
+                <p v-if="scope.row.action === 7">修改商品规格</p>
+                <p v-if="scope.row.action === 8">新增商品</p>
+                <p v-if="scope.row.action === 9">修改商品展示图片</p>
+                <p v-if="scope.row.action === 10">修改商品详情图片</p>
+                <p v-if="scope.row.action === 11">删除商品详情图片</p>
+                <p v-if="scope.row.action === 12">增加商品详情图片</p>
               </template>
             </el-table-column>
             <el-table-column label="订单编号" prop="orderId" v-if="type === '订单操作记录'"></el-table-column>
@@ -259,7 +291,7 @@
 
 <script>
   import {mapState} from 'vuex'
-  import {AdminGetOrder,AdminSendOrder,AdminCreditRule,AdminUserInfo,AdminChangeState,AdminProductType,AdminGetProduct,AdminSearchOrder,AdminUserRecord,AdminOrderRecord,AdminProductRecord,AdminChangeTypeState,AdminChangeProperty,AdminChangeKeywords,AdminChangePrice,AdminChangeStock} from '../../api'
+  import {AdminGetOrder,AdminSendOrder,AdminCreditRule,AdminUserInfo,AdminChangeState,AdminProductType,AdminGetProduct,AdminSearchOrder,AdminUserRecord,AdminOrderRecord,AdminProductRecord,AdminChangeTypeState,AdminChangeProperty,AdminChangeKeywords,AdminChangePrice,AdminChangeStock,AdminChangeProductState} from '../../api'
   import { Notification } from 'element-ui'
 
   export default {
@@ -441,6 +473,13 @@
         AdminChangeState(userId).then(() => {
           AdminUserInfo().then((data) => {
             this.$store.commit('Person/setUsers',data)
+          })
+        })
+      },
+      changeProductState(productId) {
+        AdminChangeProductState(productId).then(() => {
+          AdminGetProduct().then((data) => {
+            this.products = data
           })
         })
       },

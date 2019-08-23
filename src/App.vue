@@ -10,11 +10,13 @@
 import {mapState} from 'vuex'
 import Navbar from './components/Navbar/Navbar'
 import ShopCart from './components/ShopCart/ShopCart'
-import {reqInitLogin,reqAdminInitLogin,reqInitShopCart,reqUnpaid,reqUnsend,reqUnreceive,AdminUserInfo} from './api'
+import {reqInitLogin,reqAdminInitLogin,reqInitShopCart,reqUnpaid,reqUnsend,reqUnreceive,AdminUserInfo,reqSysCancelOrder} from './api'
+import { Notification } from 'element-ui'
 
 export default {
   name: 'App',
   mounted () {
+    this.initWebSocket()
     this.$store.dispatch('Products/getAllTypes')
     this.$store.dispatch('Products/getPropertyName', '家用电器')
     this.$store.dispatch('Products/getProducts', '家用电器')
@@ -23,6 +25,7 @@ export default {
       if (data.isLogin) {
         this.$store.commit('Person/changeLogin')
         this.$store.commit('Person/setUserInfo',data)
+        Notification.closeAll()
         reqUnpaid().then((data) => {
           if(data > 0) {
             this.$store.commit('Order/changeUnpaidOrder', data)
@@ -84,6 +87,11 @@ export default {
       this.$store.commit('ShopCart/displayShopCart', data)
     })
   },
+  data() {
+    return {
+      websocket: null
+    }
+  },
   components: {
     ShopCart,
     Navbar
@@ -105,6 +113,41 @@ export default {
     },
     messageUnreceive() {
       return this.unreceiveOrder +'个未收货的订单！请到个人中心的订单中心确认收货!'
+    },
+    initWebSocket() {
+      const wsuri = "ws://127.0.0.1:8081/websocket"
+      this.websocket = new WebSocket(wsuri);
+      this.websocket.onmessage = this.websocketOnMessage
+      this.websocket.onopen = this.websocketOnOpen
+      this.websocket.onerror = this.websocketOnError
+      this.websocket.onclose = this.websocketClose
+    },
+    websocketOnOpen() {
+      console.log("连接打开")
+    },
+    websocketOnError() {
+      this.initWebSocket()
+    },
+    websocketOnMessage(e) {
+      reqSysCancelOrder(e.data).then(() => {
+        this.$store.commit('Order/minus')
+        this.$message.info("订单" + e.data + "已自动取消！")
+        Notification.closeAll()
+        if(this.unpaidOrder > 0) {
+          this.$notify({
+            title: '未付款!',
+            dangerouslyUseHTMLString: true,
+            message: this.messageUnpaid(),
+            type:'warning',
+            showClose: false,
+            duration: 0,
+            position: 'bottom-left'
+          });
+        }
+      })
+    },
+    websocketClose(e) { 
+      console.log('断开连接',e)
     }
   }
 }

@@ -167,19 +167,17 @@
                                     <el-radio v-model="paymethod" label="1">不使用优惠券</el-radio>
                                 </div>
                             </div>
-                            <el-row>
-                                <el-col :span="14">
-                                    <div class="ordertotalmoney" v-if="paymethod === '0'">
-                                        共需{{order.totalMoney - benefit * benefitCount | numFilter}}元
-                                    </div>
-                                    <div class="ordertotalmoney" v-else>
-                                        共需{{order.totalMoney | numFilter}}元
-                                    </div>
-                                </el-col>
-                                <el-col :span="10" style="margin-top:50px">
-                                    <el-button type="success" @click="pay">立即付款</el-button>
-                                </el-col>
-                            </el-row>
+                            <div>
+                                <div class="ordertotalmoney" v-if="paymethod === '0'">
+                                    共需<span style="text-decoration:line-through;margin-left:5px">{{order.totalMoney | numFilter}}</span><span style="margin-left:5px">{{order.totalMoney - benefit * benefitCount | numFilter}}</span>元
+                                </div>
+                                <div class="ordertotalmoney" v-else>
+                                    共需{{order.totalMoney | numFilter}}元
+                                </div>
+                            </div>
+                            <div>
+                                <el-button type="success" @click="pay" style="margin-left:200px">立即付款</el-button>
+                            </div>
                         </div>
                         <el-form :model="Address" v-else>
                             <el-form-item label="收货人姓名">
@@ -220,11 +218,11 @@
 <script>
     import {mapState} from 'vuex'
     import axios from 'axios'
-    import {reqDeleteShopCart,reqAddCount,reqSubstractCount,reqAddAddress,reqGetAddress,reqClearOrderSession,reqCreateOrder,reqCancelOrder,reqPay,reqInitLogin} from '../../api'
+    import {reqDeleteShopCart,reqAddCount,reqSubstractCount,reqAddAddress,reqGetAddress,reqClearOrderSession,reqCreateOrder,reqCancelOrder,reqPay,reqInitLogin,reqSysCancelOrder,reqInitShopCart} from '../../api'
     import addressData from '../../assets/citys.json'
     import { Notification } from 'element-ui'
 
-    const MIN_COUNT = 5
+    const MIN_COUNT = 1
     const TIME_COUNT = 59
 
     export default {
@@ -386,12 +384,30 @@
                         },
                         data:formData
                     }).then((data) => {
-                        this.order = data.data
-                        let num = Math.floor(this.currentCredit / 1000)
-                        for(var i = 1;i <= num;i++) {
-                            this.benefits.push(i)
+                        if(data.data.message === 'OK') {
+                            this.order = data.data
+                            let num = Math.floor(this.currentCredit / 1000)
+                            for(var i = 1;i <= num;i++) {
+                                this.benefits.push(i)
+                            }
+                            this.orderVisible = true
+                        } else {
+                            for(var i = 0;i < data.data.orderProducts.length;i++) {
+                                var type = data.data.orderProducts[i].typeName
+                                var name = data.data.orderProducts[i].productName
+                                this.$message.error("属于" + type + "的商品" + name + "已经下架啦！")
+                                for(var j = 0;j < this.products.length;j++) {
+                                    if(data.data.orderProducts[i].productId === this.products[j].productId) {
+                                        this.$store.commit('ShopCart/deleteProduct',j)
+                                        reqDeleteShopCart(data.data.orderProducts[i].productId).then((data) => {
+                                            this.$message.success(data)
+                                        }).catch(() => {
+                                            this.$message.error("购物车删除商品失败")
+                                        })
+                                    }
+                                }
+                            }
                         }
-                        this.orderVisible = true
                     }).catch(() => {
                         this.$message.error("获取订单失败")
                     })
@@ -452,6 +468,9 @@
                     this.Address.pcd = []
                     this.Address.detail = ''
                     this.checked = false
+                    this.paymethod = '1'
+                    this.benefitCount = 1
+                    this.benefits = []
                 }).catch(() => {});
             },
             onCancel() {
@@ -463,6 +482,7 @@
                 this.checked = false
             },
             pay() {
+                this.showShopCart = false
                 if(!this.timer) {
                     this.second = 0
                     this.min = MIN_COUNT
@@ -475,6 +495,7 @@
                             this.second = TIME_COUNT;
                         } 
                         if(this.second === 0 && this.min === 0) {
+                            this.isPay = false
                             clearInterval(this.timer);
                             this.timer = null;
                             this.min = ''
@@ -489,46 +510,71 @@
                     num = 0
                 }
                 reqCreateOrder(this.selectAddress,num).then((data) => {
-                    this.order = data
-                    this.$store.commit('Order/add')
+                    if(data.message == 'OK') {
+                        this.order = data
+                        this.$store.commit('Order/add')
+                        this.isPay = true
+                        this.orderVisible = false
+                        this.checkAll = false
+                        this.isIndeterminate = false
+                        this.defaultAddress = ''
+                        this.otherAddress = []
+                        this.paymethod = '1'
+                        this.benefitCount = 1
+                        this.benefits = []
+                        for(var i = 0;i < this.orderList.length;i++) {
+                            for(var j = 0;j < this.products.length;j++) {
+                                if(this.orderList[i] === this.products[j].productId) {
+                                    this.$store.commit('ShopCart/deleteProduct',j)
+                                    reqDeleteShopCart(this.orderList[i]).then((data) => {
+                                        this.$message.success(data)
+                                    }).catch(() => {
+                                        this.$message.error("购物车删除商品失败")
+                                    })
+                                }
+                            }
+                        }
+                        this.orderList = []
+                    } else {
+                        this.$message.info("商品" + data.message + "库存不足,无法下单")
+                        reqInitShopCart().then((data) => {
+                            this.$store.commit('ShopCart/displayShopCart', data)
+                            this.defaultAddress = ''
+                            this.otherAddress = []
+                            this.addressVisible = false
+                            this.orderVisible = false
+                            this.orderList = []
+                            this.checkAll = false
+                            this.isIndeterminate = false
+                            this.Address.receiver = ''
+                            this.Address.telephone = ''
+                            this.Address.pcd = []
+                            this.Address.detail = ''
+                            this.checked = false
+                            this.paymethod = '1'
+                            this.benefitCount = 1
+                            this.benefits = []
+                        })
+                    }
+                }).catch(() => {
+                    this.$message.error("创建订单失败")
+                })
+            },
+            finishPay() {
+                reqPay(this.order.orderId).then((data) => {
                     reqInitLogin().then((data) => {
+                        this.$store.commit('Order/minus')
                         this.$store.commit('Person/setLevel', data.level)
                         this.$store.commit('Person/setBenefit', data.benefit)
                         this.$store.commit('Person/setCurrentCredit', data.currentCredit)
                         this.$store.commit('Person/setTotalCredit', data.totalCredit)
                         this.$store.commit('Person/setNextLevelCredit', data.nextLevelCredit)
+                        clearInterval(this.timer);
+                        this.timer = null;
+                        this.min = ''
+                        this.second = ''
+                        this.isPay = false
                     })
-                }).catch(() => {
-                    this.$message.error("创建订单失败")
-                })
-                this.isPay = true
-                this.orderVisible = false
-                this.checkAll = false
-                this.isIndeterminate = false
-                this.defaultAddress = ''
-                this.otherAddress = []
-                for(var i = 0;i < this.orderList.length;i++) {
-                    for(var j = 0;j < this.products.length;j++) {
-                        if(this.orderList[i] === this.products[j].productId) {
-                            this.$store.commit('ShopCart/deleteProduct',j)
-                            reqDeleteShopCart(this.orderList[i]).then((data) => {
-                                this.$message.success(data)
-                            }).catch(() => {
-                                this.$message.error("购物车删除商品失败")
-                            })
-                        }
-                    }
-                }
-                this.orderList = []
-            },
-            finishPay() {
-                reqPay(this.order.orderId).then((data) => {
-                    this.$store.commit('Order/minus')
-                    clearInterval(this.timer);
-                    this.timer = null;
-                    this.min = ''
-                    this.second = ''
-                    this.isPay = false
                 }).catch(() => {
 
                 })
@@ -565,8 +611,7 @@
                         position: 'bottom-left'
                     });
                 }
-            }
-            
+            },
         }
     }
 </script>

@@ -46,7 +46,7 @@
       <h2>订单中心</h2>
       <el-tabs @tab-click="checkOrder" v-model="activeOrder">
         <el-tab-pane v-for="(state,index) in orderState" :key="index" :label="state" :name="index">
-          <el-table :data=orderList style="width:100%" height="500">
+          <el-table :data=orderList style="width:100%" height="450">
             <el-table-column type="expand">
               <template slot-scope="props">
                 <el-row v-for="(product,index) in props.row.orderProducts" :key="index">
@@ -80,12 +80,25 @@
                 </el-row>
               </template>
             </el-table-column>
-            <el-table-column label="订单编号" prop="orderId"></el-table-column>
-            <el-table-column label="收货人姓名" prop="receiver"></el-table-column>
-            <el-table-column label="收货人手机" prop="telephone"></el-table-column>
-            <el-table-column label="收货人地址" prop="address"></el-table-column>
-            <el-table-column label="订单创建时间" prop="createTime"></el-table-column>
-            <el-table-column label="商品详情">请展开显示</el-table-column>
+            <el-table-column type="index" fixed="left"></el-table-column>
+            <el-table-column label="订单编号" prop="orderId" width="168"></el-table-column>
+            <el-table-column label="收货人姓名" prop="receiver" width="100"></el-table-column>
+            <el-table-column label="收货人手机" prop="telephone" width="125"></el-table-column>
+            <el-table-column label="收货人地址" prop="address" width="325"></el-table-column>
+            <el-table-column label="订单总价格" width="100">
+              <template slot-scope="scope">
+                <p>{{scope.row.totalMoneyBeforeBenefit | numFilter}}</p>
+              </template>
+            </el-table-column>
+            <el-table-column label="使用优惠券数量" prop="benefitCount" width="150"></el-table-column>
+            <el-table-column label="优惠金额" prop="benefitMoney"></el-table-column>
+            <el-table-column label="实付金额">
+              <template slot-scope="scope">
+                <p>{{scope.row.totalMoneyBeforeBenefit - scope.row.benefitMoney | numFilter}}</p>
+              </template>
+            </el-table-column>
+            <el-table-column label="订单创建时间" prop="createTime" width="175"></el-table-column>
+            <el-table-column label="商品详情" width="100">请展开显示</el-table-column>
             <el-table-column v-if="index === 0" width="100">
               <template slot-scope="scope">
                 <el-link type="primary" @click="pay(scope.row.orderId)">立即付款</el-link>
@@ -96,12 +109,12 @@
                 <el-link type="primary" @click="cancelOrder(scope.row.orderId)">取消订单</el-link>
               </template>
             </el-table-column>
-            <el-table-column v-if="index === 0">
+            <el-table-column v-if="index === 0" width="150">
               <template slot-scope="scope">
                 剩余时间:{{scope.row.djs}}
               </template>
             </el-table-column>
-            <el-table-column v-if="index === 2">
+            <el-table-column v-if="index === 2" width="150">
               <template slot-scope="scope">
                 <el-button type="primary" @click="receive(scope.row.orderId)">确认收货</el-button>
               </template>
@@ -207,11 +220,13 @@
         </div>
       </el-dialog>
     </el-tab-pane>
+    <el-tab-pane label="评论管理" name="comment">
+    </el-tab-pane>
   </el-tabs>
 </template>
 <script>
   import {mapState} from 'vuex'
-  import {modifyUserInfo,reqModifyCommit,reqAddAddress,reqGetAddress,reqSetDefault,reqDeleteAddress,reqModifyAddress,reqGetOrder,reqCancelOrder,reqGetTime,reqPay,reqReceive,reqCreditInfo} from '../../api'
+  import {modifyUserInfo,reqModifyCommit,reqAddAddress,reqGetAddress,reqSetDefault,reqDeleteAddress,reqModifyAddress,reqGetOrder,reqCancelOrder,reqGetTime,reqPay,reqReceive,reqCreditInfo,reqSysCancelOrder} from '../../api'
   import axios from 'axios'
   import addressData from '../../assets/citys.json'
   import { Notification } from 'element-ui'
@@ -347,11 +362,17 @@
         this.$message.warning("请先登录")
       }
     },
+    filters: {
+      numFilter(value) {
+        let realVal = parseFloat(value).toFixed(1)
+        return realVal
+      }
+    },
     methods: {
       handleClick(tab, event) {
         if(tab.name === "order") {
           if(this.unpaidOrder > 0){
-            this.activeOrder = 0
+            this.activeOrder = '0'
             reqGetOrder(0).then((data) => {
               let tempOrderList = data
               reqGetTime().then((timedata) => {
@@ -376,17 +397,17 @@
                         this.orderList[key]["restTime"]--
                         this.orderList[key]["djs"] = mm + "分" + ss + "秒";
                       }
-                      if(ss === 0 && mm > 0 && mm <= 5) {
+                      if(ss === 0 && mm > 0 && mm <= 1) {
                         mm--
                         ss = 59
                         this.orderList[key]["restTime"]--
                         this.orderList[key]["djs"] = mm + "分" + ss + "秒";
                       } 
                       if(ss <= 0 && mm <= 0) {
-                        clearInterval(this.timer);
-                        this.timer = null;
-                        mm = 0
-                        ss = 0
+                        reqGetOrder(4).then((data) => {
+                          this.orderList = data
+                          this.activeOrder = 4
+                        })
                       }
                     }
                   }, 1000)

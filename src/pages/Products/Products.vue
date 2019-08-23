@@ -27,42 +27,28 @@
         <el-divider></el-divider>
         <el-row>
           <el-col :span="productSpanValue" v-for="(product, index) in products">
-            <Product :product="product" :index="index" v-show="!isClick"></Product>
+            <Product :product="product" :index="index" v-show="!isClick && product.state === 0"></Product>
           </el-col>
         </el-row>
-        <el-row v-show="isClick">
+        <el-row v-show="isClick" :gutter="20">
           <el-col :span="8">
-            <el-container>
-              <el-main>
-                <el-button v-show="isModify === true" size="small" style="margin-left:60px">
-                  修改商品图片
-                </el-button>
-                <el-avatar :src="currentUrl" :size="250" shape="square" :fit="cover"></el-avatar>
-              </el-main>
-              <el-footer>
-                <div style="width:300px">
-                  <el-row>
-                    <el-col :span="spanValue" v-for="url in urls" :key="url">
-                      <div @click="clickUrl = url" class="smallpic">
-                       <el-avatar :src="smallUrl(url)" shape="square" :size="50" :fit="contain"></el-avatar>
-                      </div>
-                    </el-col>
-                  </el-row>
-                </div>
-              </el-footer>
-            </el-container>
+            <el-carousel indicator-position="none"  height="360px">
+              <el-carousel-item v-for="(productPicture,index) in productPictures" :key="index">
+                <el-image :src="smallUrl(productPicture.picName)"></el-image>
+              </el-carousel-item>
+            </el-carousel>
           </el-col>
           <el-col :span="8">
             <h2>{{clickProduct.productName}}</h2>
-            <div>
+            <div v-show="!isAdmin">
               <el-tag v-for="(keyword) in clickProduct.keywords" :key="keyword" size="medium">{{keyword}}</el-tag>
             </div>
-            <div class="price">
+            <div class="price" v-show="!isAdmin">
               <p>价格:￥{{clickProduct.price | numFilter}}</p>
               <p>库存:{{clickProduct.stock}}件</p>
               <p>销量:{{clickProduct.amount}}件!</p>
             </div> 
-            <div class="count">
+            <div class="count" v-show="!isAdmin">
               <el-container>
                 <el-button icon="el-icon-minus" @click="minus" :disabled="isAdmin"></el-button>
                 <el-input v-model="count" :disabled="isAdmin"></el-input>
@@ -70,32 +56,37 @@
               </el-container>
             </div>
             <div>
-              <el-container>
+              <el-container v-show="!isAdmin">
                 <el-button type="info" icon="el-icon-star-off" :disabled="isAdmin">收藏</el-button>
                 <el-button type="primary" class="shopcart" :disabled="isAdmin">加入购物车</el-button>
               </el-container>
             </div>
+            <el-button v-show="isAdmin" size="medium" @click="ModifyPictureVisible = true">
+              修改商品详情图片
+            </el-button>
           </el-col>
-          <el-button v-show="isAdmin && isModify === false" size="small" @click="ModifyProduct">
-            修改商品
-          </el-button>
-          <el-button v-show="isModify === true" size="small" @click="ModifyCommit">
-            提交修改
-          </el-button>
         </el-row>
         <el-tabs v-model="activeName" v-show="isClick">
           <el-tab-pane label="商品详情" name="first">
             <el-row>
               <el-col :span="4">
-                <div v-for="(property,index) in clickProductProperties" :key="property">
+                <div v-for="(property,index) in clickProductProperties" :key="index">
                   <p>{{property}}:</p>
                 </div>
               </el-col>
               <el-col :span="6">
-                <div v-for="(property,index) in clickProduct.propertyValue" :key="property">
-                  <p v-show="isModify === false">{{property}}</p>
-                  <el-input v-show="isModify === true" :placeholder="property" style="width:250px"></el-input>
+                <div v-for="(property,index) in clickProductProperties" :key="index">
+                  <p v-show="isModify === false">{{clickProduct.propertyValue[index]}}</p>
+                  <el-input v-model="propertyValues[index]" v-show="isModify === true" :placeholder="clickProduct.propertyValue[index]" style="width:250px"></el-input>
                 </div>
+              </el-col>
+              <el-col :span="14">
+                <el-button v-show="isAdmin && isModify === false" size="medium" @click="ModifyProperty">
+                  修改商品规格
+                </el-button>
+                <el-button v-show="isModify === true" size="medium" @click="ModifyCommit">
+                  提交修改
+                </el-button>
               </el-col>
             </el-row>
           </el-tab-pane>
@@ -128,31 +119,34 @@
             </el-col>
           </el-row>
         </el-form-item>
-        <el-form-item label="商品属性">
+        <el-form-item label="商品规格">
           <el-row>
             <el-col :span="4">
-              <div v-for="(property,index) in clickProductProperties" :key="index">
+              <div v-for="(property,index) in activeProperties" :key="index">
                 {{property}}
               </div>
             </el-col>
             <el-col :span="6">
-              <div v-for="(property,index) in clickProductProperties" :key="index">
+              <div v-for="(property,index) in activeProperties" :key="index">
                 <el-input v-model="CreateProduct.properties[index]"></el-input>
               </div>
             </el-col>
           </el-row>
         </el-form-item>
-        <el-form-item label="商品图片">
-          <el-upload action="/api/productPictureUpload" list-type="picture-card" :on-preview="handlePictureCardPreview" :on-remove="handleRemove" :http-request="picUpload" :file-list="dialogImageUrl" :limit="5" :on-exceed="handleExceed">
+        <el-form-item label="商品展示图片">
+          <el-upload class="avatar-uploader" action="/api/productDisplayPictureUpload" :on-success="onSuccess" :http-request="displayImageUpload">
+            <img v-if="displayImageUrl" :src="displayImageUrl" class="avatar">
+            <i v-else class="el-icon-plus avatar-uploader-icon"></i>
+          </el-upload>
+        </el-form-item>
+        <el-form-item label="商品详情图片">
+          <el-upload action="/api/productPictureUpload" list-type="picture-card" :on-remove="handleRemove" :http-request="picUpload" :limit="4" :on-exceed="handleExceed">
             <i class="el-icon-plus"></i>
           </el-upload>
-          <el-dialog :visible.sync="dialogVisible">
-            <img width="100%" :src="dialogImageUrl">
-          </el-dialog>
         </el-form-item>
       </el-form>
       <div slot="footer" class="dialog-footer">
-        <el-button @click.prevent="createProduct('CreateProduct')">创建商品</el-button>
+        <el-button @click.prevent="createProduct">创建商品</el-button>
       </div>
     </el-dialog>
     <el-dialog title="新建商品类型" :visible.sync="CreateProductTypeFormVisible" @close="reset" center>
@@ -168,12 +162,41 @@
         <el-button @click.prevent="createProductType()">创建商品类型</el-button>
       </div>
     </el-dialog>
+    <el-dialog title="修改商品详情图片" :visible.sync="ModifyPictureVisible" center @close="reset">
+      <el-row v-for="(productPicture,index) in productPictures" :key="index">
+        <el-col :span="8">
+          <el-upload v-if="changeDetailImage && index === mindex" class="avatar-uploader" action="/api/productDisplayPictureUpload" :on-success="onSuccess" :http-request="displayImageUpload">
+            <img v-if="displayImageUrl" :src="displayImageUrl" class="avatar">
+            <i v-else class="el-icon-plus avatar-uploader-icon"></i>
+          </el-upload>
+          <el-image v-else :src="smallUrl(productPicture.picName)" style="width:145px;height:150px"></el-image>
+        </el-col>
+        <el-col :span="14">
+          <el-button type="primary" v-if="changeDetailImage && index === mindex" size="mini" @click="confirmModify(productPicture)">确定</el-button>
+          <div v-else>
+            <el-button type="success" @click="modifyDetailPicture(index)" size="mini">修改</el-button>
+            <el-button type="info" size="mini" @click="deletePicture(productPicture)">删除</el-button>
+          </div>
+        </el-col>
+      </el-row>
+      <el-divider></el-divider>
+      <el-row v-show="productPictures.length < 4">
+        <el-col :span="18">
+          <el-upload action="/api/productPictureUpload" list-type="picture-card" :on-remove="handleRemove" :http-request="picUpload" :limit="4 - productPictures.length" :on-exceed="handleExceed">
+            <i class="el-icon-plus"></i>
+          </el-upload>
+        </el-col>
+        <el-col :span="6">
+          <el-button type="primary" style="float:right;margin-bottom:10px" @click="confirmAdd(clickProduct.productId)">确认添加</el-button>
+        </el-col>
+      </el-row>
+    </el-dialog>
   </div>
 </template>
 <script>
   import Product from '../../components/Product/Product'
   import {mapState} from 'vuex'
-  import {reqCreateProduct,AdminCreateProductType} from '../../api'
+  import {reqCreateProduct,AdminCreateProductType,AdminChangePropertyValue,modifyProductDetailPicture,reqGetProductPictures,AdminDeleteProductDetailImage,AdminAddProductDetailImage} from '../../api'
   import axios from 'axios'
 
   export default {
@@ -191,9 +214,8 @@
         productPrice: '',
         CreateProductFormVisible: false,
         CreateProductTypeFormVisible: false,
-        dialogImageUrl: '',
-        dialogVisible: false,
-        clickUrl: '',
+        displayImageUrl: '',
+        displayImageVisible: false,
         CreateProduct: {
           name: '',
           price: '',
@@ -204,7 +226,11 @@
         CreateProductType: {
           name: '',
           property: ''
-        }
+        },
+        propertyValues: [],
+        ModifyPictureVisible: false,
+        changeDetailImage: false,
+        mindex: '',
       }
     },
     computed: {
@@ -212,32 +238,22 @@
         isAdmin: state=>state.Person.isAdmin,
         types: state=>state.Products.productTypes,
         products: state=>state.Products.products,
+        activeProperties: state=>state.Products.productPropertyNames,
         isClick: state=>state.ClickProduct.isClick,
         clickProduct: state=>state.ClickProduct.clickProduct,
-        clickProductProperties: state=>state.Products.productPropertyNames,
+        clickProductProperties: state=>state.ClickProduct.clickProductProperties,
         activeType: state=>state.Products.activeType,
-        urls: state=>state.ClickProduct.clickProductPictures
+        productPictures: state=>state.ClickProduct.clickProductPictures
       }),
       dialogName: function() {
         return "添加" + this.activeType
       },
-      currentUrl: function() {
-        let url = ""
-        if(this.clickUrl === '') {
-          if(this.clickProduct.displayImage != undefined) {
-            url = "/api/pictures/" + this.clickProduct.displayImage
-          }
-        } else {
-          url = "/api/pictures/" + this.clickUrl
-        }
-        return url
-      },
-      spanValue: function() {
-        return 24/this.urls.length
-      },
       productSpanValue: function() {
         return 24/this.products.length
       }
+    },
+    mounted() {
+      this.$store.commit('ClickProduct/resetClick')
     },
     filters: {
       numFilter (value) {
@@ -252,15 +268,20 @@
       Delete(index) {
         this.CreateProduct.keywords.splice(index, 1)
       },
+      onSuccess(res, file) {
+        this.displayImageUrl = URL.createObjectURL(file.raw)
+      },
       reset() {
-        this.CreateProduct.name = "",
-        this.CreateProduct.price = "",
-        this.CreateProduct.stock = "",
-        this.CreateProduct.keywords = [],
-        this.CreateProduct.properties = [],
-        this.dialogImageUrl= []
+        this.CreateProduct.name = ""
+        this.CreateProduct.price = ""
+        this.CreateProduct.stock = ""
+        this.CreateProduct.keywords = []
+        this.CreateProduct.properties = []
         this.CreateProductType.name = ''
         this.CreateProductType.property = ''
+        this.mindex = ''
+        this.changeDetailImage = ''
+        this.displayImageUrl = ''
       },
       handleRemove(file, fileList) {
         let url = '/api/productPictureDelete'
@@ -278,10 +299,22 @@
           console.log("Response",response)
         })
       },
-      handlePictureCardPreview(file) {
-        console.log("fileUrl", file.url)
-        this.dialogImageUrl = file.url;
-        this.dialogVisible = true;
+      displayImageUpload(data) {
+        let file = data.file
+        let url = '/api/productDisplayPictureUpload'
+        let formData = new FormData()
+        formData.append("file",file)
+
+        axios({
+          method: 'POST',
+          url: url,
+          headers: {
+            'Content-Type': 'multipart/form-data;charset=UTF-8'
+          },
+          data:formData
+        }).then((response) => {
+          data.onSuccess(response.data)
+        })
       },
       picUpload(data) {
         let file = data.file
@@ -297,13 +330,13 @@
           },
           data:formData
         }).then((response) => {
-          console.log("Response",response)
+          console.log(response.data)
         })
       },
       handleExceed(files, fileList) {
-        this.$message.warning(`当前限制选择5张图片,本次选择了 ${files.length}张图片,共选择了 ${files.length + fileList.length} 张图片`);
+        this.$message.warning(`当前限制商品详情页面显示4张图片`);
       },
-      createProduct(formName) {
+      createProduct() {
         reqCreateProduct({
           productName: this.CreateProduct.name,
           productPrice: this.CreateProduct.price,
@@ -336,11 +369,25 @@
         }
         this.$store.dispatch('Products/getProducts',this.activeType)
       },
-      ModifyProduct() {
-        this.isModify = !this.isModify
+      ModifyProperty() {
+        this.isModify = true
+        for(var i = 0;i < this.clickProductProperties.length;i++) {
+          this.propertyValues[i] = this.clickProduct.propertyValue[i]
+        }
       },
       ModifyCommit() {
-        this.isModify = !this.isModify
+        var tempstr = ''
+        for(var i = 0;i < this.propertyValues.length;i++) {
+          tempstr += this.propertyValues[i]
+          tempstr += ";"
+        }
+        var str = tempstr.substr(0,tempstr.length - 1)
+        AdminChangePropertyValue(str,this.clickProduct.productId).then(() => {
+          this.propertyValues = []
+          this.isModify = false
+          this.$store.dispatch('Products/getProducts', this.activeType)
+          this.$store.commit('ClickProduct/changeClick')
+        })
       },
       minus() {
         if(this.count > 1) {
@@ -389,6 +436,48 @@
         } else {
           this.$message.warning("请输入商品类型名称")
         }
+      },
+      modifyDetailPicture(index) {
+        this.mindex = index
+        this.changeDetailImage = true
+      },
+      confirmModify(picture) {
+        modifyProductDetailPicture(picture.picId).then((data) => {
+          if(data === '修改成功') {
+            this.changeDetailImage = false
+            this.mindex = ''
+            this.displayImageUrl = ''
+            reqGetProductPictures(picture.roleId).then((data) => {
+              this.$store.commit('ClickProduct/updateClickProductPictures', data)
+            }).catch(() => {
+              this.$message.error("获取图片失败")
+            })
+          } else {
+            this.$message.warning(data)
+          }
+        })
+      },
+      deletePicture(picture) {
+        AdminDeleteProductDetailImage(picture.picId).then((data) => {
+          if(data === '修改成功') {
+            reqGetProductPictures(picture.roleId).then((data) => {
+              this.$store.commit('ClickProduct/updateClickProductPictures', data)
+            }).catch(() => {
+              this.$message.error("获取图片失败")
+            })
+          }
+        })
+      },
+      confirmAdd(roleId) {
+        AdminAddProductDetailImage(roleId).then((data) => {
+          if(data === '修改成功') {
+            reqGetProductPictures(roleId).then((data) => {
+              this.$store.commit('ClickProduct/updateClickProductPictures', data)
+            }).catch(() => {
+              this.$message.error("获取图片失败")
+            })
+          }
+        })
       }
     }
   }
@@ -422,5 +511,26 @@
   .productname {
     width:250px;
     margin-bottom:20px;
+  }
+  .avatar {
+    width: 145px;
+    height: 150px;
+    display: block;
+  }
+  .avatar-uploader {
+    border: 1px dashed #d9d9d9;
+    border-radius: 6px;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    width:145px;
+    height:150px;
+  }
+  .avatar-uploader-icon {
+    font-size: 35px;
+    color: #8c939d;
+    width: 145px;
+    height: 150px;
+    line-height: 150px;
   }
 </style>

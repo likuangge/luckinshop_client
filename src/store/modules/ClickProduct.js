@@ -17,6 +17,9 @@ const mutations = {
     },
     updateClickProductPictures(state, clickProductPictures) {
         state.clickProductPictures = clickProductPictures
+    },
+    resetClick(state) {
+        state.isClick = false
     }
 }
 

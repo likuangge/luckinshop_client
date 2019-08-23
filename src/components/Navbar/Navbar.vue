@@ -555,6 +555,7 @@
             this.input = ''
           }
         }
+        this.$store.commit('ClickProduct/resetClick')
         this.$router.push('/products')
       },
       logout() {
