@@ -66,7 +66,7 @@
             </el-button>
           </el-col>
         </el-row>
-        <el-tabs v-model="activeName" v-show="isClick">
+        <el-tabs v-model="activeName" v-show="isClick" @tab-click="checkDetail">
           <el-tab-pane label="商品详情" name="first">
             <el-row>
               <el-col :span="4">
@@ -90,7 +90,34 @@
               </el-col>
             </el-row>
           </el-tab-pane>
-          <el-tab-pane label="商品评论" name="second">配置管理</el-tab-pane>
+          <el-tab-pane label="商品评论" name="second">
+            <div v-for="(comment,index) in commentList" :key="index">
+              <el-row>
+                <el-col :span="3" style="margin-top:10px">
+                  <el-avatar :src="smallUrl(comment.avatar)" shape="square" :size="100"></el-avatar>
+                </el-col>
+                <el-col :span="4" style="margin-top:60px">
+                  <div class="name">
+                    {{comment.userName}}
+                  </div>
+                </el-col>
+                <el-col :span="10" style="margin-top:40px">
+                  <el-rate v-model="comment.rate" disabled></el-rate>
+                  <div>
+                    <div style="margin-top:10px">
+                      评价:{{comment.comment}}
+                    </div>
+                    <div style="margin-top:10px">
+                      评价时间:{{comment.time}}
+                    </div>
+                  </div>
+                </el-col>
+              </el-row>
+            </div>
+            <div style="margin-top:20px;text-align:center">
+              <el-pagination layout="total,prev,pager,next,jumper" :total="totalComment" :page-size="commentPageSize" :hide-on-single-page="hideOnSinglePage" @current-change="handleCommentCurrentChange"></el-pagination>
+            </div>
+          </el-tab-pane>
         </el-tabs>
       </el-tab-pane>
     </el-tabs>
@@ -196,7 +223,7 @@
 <script>
   import Product from '../../components/Product/Product'
   import {mapState} from 'vuex'
-  import {reqCreateProduct,AdminCreateProductType,AdminChangePropertyValue,modifyProductDetailPicture,reqGetProductPictures,AdminDeleteProductDetailImage,AdminAddProductDetailImage} from '../../api'
+  import {reqCreateProduct,AdminCreateProductType,AdminChangePropertyValue,modifyProductDetailPicture,reqGetProductPictures,AdminDeleteProductDetailImage,AdminAddProductDetailImage,reqProductCommentCount,reqProductComment} from '../../api'
   import axios from 'axios'
 
   export default {
@@ -231,6 +258,10 @@
         ModifyPictureVisible: false,
         changeDetailImage: false,
         mindex: '',
+        totalComment: 0,
+        hideOnSinglePage: false,
+        commentPageSize: 2,
+        commentList: []
       }
     },
     computed: {
@@ -477,6 +508,30 @@
               this.$message.error("获取图片失败")
             })
           }
+        })
+      },
+      checkDetail(tab,event) {
+        if(tab.name === 'second') {
+          reqProductCommentCount(this.clickProduct.productId).then((data) => {
+            this.totalComment = data
+            if(this.totalComment <= 2) {
+              this.hideOnSinglePage = true
+            }
+            reqProductComment(this.clickProduct.productId,1,this.commentPageSize).then((data) => {
+              this.commentList = data
+            }).catch(() => {
+              this.$message.error("获取评价列表失败")
+            })
+          }).catch(() => {
+            this.$message.error("获取评价数量")
+          })
+        }
+      },
+      handleCommentCurrentChange(val) {
+        reqProductComment(this.clickProduct.productId,val,this.commentPageSize).then((data) => {
+          this.commentList = data
+        }).ctach(() => {
+          this.$message.error("获取评价列表失败")
         })
       }
     }

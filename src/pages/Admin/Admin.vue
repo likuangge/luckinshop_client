@@ -240,12 +240,18 @@
                 <p v-if="scope.row.role === 2">系统</p>
               </template>
             </el-table-column>
-            <el-table-column label="用户角色" v-if="type === '商品操作记录'">管理员</el-table-column>
+            <el-table-column label="用户角色" v-if="type === '商品操作记录'">
+              <template slot-scope="scope">
+                <p v-if="scope.row.role === 0">用户</p>
+                <p v-else>管理员</p>
+              </template>
+            </el-table-column>
             <el-table-column label="用户账号" prop="account"></el-table-column>
             <el-table-column label="用户行为" v-if="type === '用户操作记录'">
               <template slot-scope="scope">
                 <p v-if="scope.row.action === 0">登录</p>
                 <p v-if="scope.row.action === 1">登出</p>
+                <p v-if="scope.row.action === 2">评价商品</p>
               </template>
             </el-table-column>
             <el-table-column label="用户行为" v-if="type === '订单操作记录'">
@@ -272,6 +278,7 @@
                 <p v-if="scope.row.action === 10">修改商品详情图片</p>
                 <p v-if="scope.row.action === 11">删除商品详情图片</p>
                 <p v-if="scope.row.action === 12">增加商品详情图片</p>
+                <p v-if="scope.row.action === 13">对商品进行评价</p>
               </template>
             </el-table-column>
             <el-table-column label="订单编号" prop="orderId" v-if="type === '订单操作记录'"></el-table-column>
@@ -286,16 +293,63 @@
         </el-tab-pane>
       </el-tabs>
     </el-tab-pane>
+    <el-tab-pane label="统计信息" name="statistics">
+      <el-tabs type="card">
+        <el-tab-pane label="用户订单统计">
+          <div>
+            <el-row>
+              <el-col :span="8">
+                <div>开始日期</div>
+                <el-date-picker v-model="beginDate" type="date" value-format="yyyy-MM-dd" :picker-options="beginPickerOptions" placeholder="选择日期"></el-date-picker>
+              </el-col>
+              <el-col :span="8">
+                <div>结束日期</div>
+                <el-date-picker v-model="endDate" type="date" value-format="yyyy-MM-dd" :picker-options="endPickerOptions" placeholder="选择日期"></el-date-picker>
+              </el-col>
+              <el-col :span="8">
+                <div>选择用户</div>
+                <el-input v-model="dateUser" placeholder="请输入用户账号">
+                  <el-button slot="append" icon="el-icon-search" @click="createOrderChart"></el-button>
+                </el-input>
+              </el-col>
+            </el-row>
+          </div>
+          <ve-line :data="chartData" :settings="chartSettings" v-if="datePicked" style="margin-top:10px"></ve-line>
+          <!--div v-if="datePicked">
+            <el-card v-for="(object, index) in activities" :key="index">
+              <div>用户{{object.account}}的购买记录</div>
+              <el-timeline :reverse=true>
+                <el-timeline-item v-for="(activity, index) in object.list" :key="index" :timestamp="activity.timestamp">
+                  <div class="text-wrapper">{{activity.content}}</div>
+                </el-timeline-item>
+              </el-timeline>
+            </el-card>
+          </div-->
+        </el-tab-pane>
+        <el-tab-pane label="商品销售统计">
+        </el-tab-pane>
+        <el-tab-pane label="购买热力图">
+        </el-tab-pane>
+      </el-tabs>
+    </el-tab-pane>
   </el-tabs>
 </template>
 
 <script>
   import {mapState} from 'vuex'
-  import {AdminGetOrder,AdminSendOrder,AdminCreditRule,AdminUserInfo,AdminChangeState,AdminProductType,AdminGetProduct,AdminSearchOrder,AdminUserRecord,AdminOrderRecord,AdminProductRecord,AdminChangeTypeState,AdminChangeProperty,AdminChangeKeywords,AdminChangePrice,AdminChangeStock,AdminChangeProductState} from '../../api'
+  import {AdminGetOrder,AdminSendOrder,AdminCreditRule,AdminUserInfo,AdminChangeState,AdminProductType,AdminGetProduct,AdminSearchOrder,AdminUserRecord,AdminOrderRecord,AdminProductRecord,AdminChangeTypeState,AdminChangeProperty,AdminChangeKeywords,AdminChangePrice,AdminChangeStock,AdminChangeProductState,AdminDateOrderFilter} from '../../api'
   import { Notification } from 'element-ui'
+
+  const telReg = /^1[3|4|5|6|7|8|9]\d{9}$/
+  const emReg = /^\w+([-+.']\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*$/
 
   export default {
     data() {
+      this.chartSettings = {
+        axisSite: { right: ['订单完成数量'] },
+        yAxisType: ['RMB', 'RMB'],
+        yAxisName: ['元', '个']
+      }
       return {
         defaulttab: 'user',
         tabPosition: 'left',
@@ -323,7 +377,26 @@
         priceInput: '',
         showStock: '',
         sindex: '',
-        stockInput: ''
+        stockInput: '',
+        beginDate: null,
+        endDate: null,
+        beginPickerOptions: {
+          disabledDate: (time) => {
+            return this.dateConstrain(time, "BEGIN")
+          }
+        },
+        endPickerOptions: {
+          disabledDate: (time) => {
+            return this.dateConstrain(time, "END")
+          }
+        },
+        datePicked: false,
+        chartData: {
+          columns:['日期','花费金额','订单完成数量'],
+          rows: []
+        },
+        activities: [],
+        dateUser: ''
       }
     },
     computed: {
@@ -332,7 +405,18 @@
         isAdmin: state=>state.Person.isAdmin,
         unsendOrder: state=>state.Order.unsendOrder,
         users: state=>state.Person.users
-      })
+      }),
+      dateDiff: function () {
+        if (this.beginDate != null && this.endDate != null) {
+          let beginDate = new Date(this.beginDate)
+          let endDate = new Date(this.endDate)
+          let minus = endDate.getTime()-beginDate.getTime()
+          let days = parseInt(minus / (1000*60*60*24))
+          return days+1
+        } else {
+          return null
+        }
+      }
     },
     filters: {
       numFilter(value) {
@@ -551,6 +635,91 @@
             this.showStock = false
           })
         })
+      },
+      dateConstrain: function(time, order) {
+        let date = new Date(time)
+        if(date.getTime() >= Date.now()) {
+          return true
+        }
+        if(this.beginDate != null || this.endDate != null) {
+          if(order == "BEGIN") {
+            let begin = new Date(time)
+            let end = new Date(this.endDate)
+            return this.amongOneMonth(begin, end)
+          } else {
+            let begin = new Date(this.beginDate)
+            let end = new Date(time)
+            return this.amongOneMonth(begin, end)
+          }
+        }
+        return false
+      },
+      amongOneMonth: function (begin, end) {
+        if(begin.getTime() < end.getTime() && (begin.getMonth() == end.getMonth() || ((end.getMonth()-begin.getMonth() === 1 || (begin.getMonth() == 11 && end.getMonth() == 0)) && begin.getDate() >= end.getDate()))) {
+          return false
+        }
+        return true
+      },
+      createOrderChart() {
+        if(this.beginDate != null) {
+          if(this.endDate != null) {
+            if(this.dateUser != '') {
+              if(telReg.test(this.dateUser) || emReg.test(this.dateUser)) {
+                this.chartData.rows = []
+                AdminDateOrderFilter(this.beginDate,this.endDate,this.dateUser).then((data) => {
+                  this.datePicked = true
+                  let date = new Date(this.beginDate)
+                  for(let i=0;i<this.dateDiff;i++) {
+                    let exist = false
+                    let totalMoney = 0
+                    let totalFinishOrder = 0
+                    for (let order of data) {
+                      let orderDate = new Date(order.createTime)
+                      if(orderDate.getDate() == date.getDate()) {
+                        exist = true
+                        if(order.state === 3) {
+                          totalMoney += order.totalMoneyBeforeBenefit
+                          totalFinishOrder++
+                        } 
+                      }
+                    }
+                    if(!exist) {
+                      this.chartData.rows.push({
+                        '日期': (date.getMonth()+1).toString()+"/"+date.getDate(),
+                        '花费金额': 0,
+                        '订单完成数量': 0
+                      })
+                    } else {
+                      this.chartData.rows.push({
+                        '日期': (date.getMonth()+1).toString()+"/"+date.getDate(),
+                        '花费金额': totalMoney,
+                        '订单完成数量': totalFinishOrder
+                      })
+                    }
+                    date.setDate(date.getDate() + 1)
+                  }
+                  this.beginDate = null
+                  this.endDate = null
+                  this.dateUser = ''
+                  let list = []
+                  let accountList = []
+                  let dateObject = {content: ''}
+                  let accountObject = {}
+                }).catch(() => {
+                  this.$message.error("获取过滤订单失败")
+                })
+              } else {
+                this.$message.warning("请输入正确的用户账号")
+              }
+            } else {
+              this.$message.warning("请输入用户账号")
+            }
+          } else {
+            this.$message.warning("请选择结束日期")
+          }
+        } else {
+          this.$message.warning("请选择开始日期")
+        }
       }
     }
   }
@@ -585,5 +754,8 @@
   .input-with-select {
     width: 500px;
     background-color: #fff;
+  }
+  .text-wrapper {
+    white-space: pre-wrap;
   }
 </style>

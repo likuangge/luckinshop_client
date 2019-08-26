@@ -179,6 +179,21 @@ export const AdminDeleteProductDetailImage = (picId) => ajax(BASE_URL+'/admin/de
 // 59、管理员增加商品详情图片
 export const AdminAddProductDetailImage = (roleId) => ajax(BASE_URL+'/admin/addProductDetailPicture',{roleId})
 
+// 60、提交评价
+export const reqSubmitComment = ({commentId,rate,comment}) => ajax(BASE_URL+'/comment/submitComment',{commentId,rate,comment},'POST')
+
+// 61、获取评价列表
+export const reqCommentProduct = (userId,state,page,limit) => ajax(BASE_URL+'/comment/getCommentProduct',{userId,state,page,limit})
+
+// 62、获取评价商品数量
+export const reqCommentCount = (userId,state) => ajax(BASE_URL+'/comment/getCommentCount',{userId,state})
+
+// 63、获取商品评价数量
+export const reqProductCommentCount = (productId) => ajax(BASE_URL+'/comment/getProductCommentCount',{productId})
+
+// 64、获取商品评价列表
+export const reqProductComment = (productId,page,limit) => ajax(BASE_URL+'/comment/getProductComment',{productId,page,limit})
+
 // 3、改变用户状态
 export const reqChangeUser = (account) => ajax(BASE_URL+'/user/change', {account}, 'POST')
 
@@ -236,7 +251,7 @@ export const reqGetBookDetail = (ISBN) => ajax(BASE_URL+'/book/detail', {ISBN})
 export const reqDeleteBook = (ISBN) => ajax(BASE_URL+'/book/delete', {ISBN})
 
 // 18、日期筛选订单
-export const reqDateOrderFilter = (beginDate, endDate, account) => ajax(BASE_URL+'/order/date', {beginDate, endDate, account})
+export const AdminDateOrderFilter = (beginDate,endDate,account) => ajax(BASE_URL+'/admin/dateOrder', {beginDate,endDate,account})
 
 // 19、日期筛选订单详情
 export const reqDateDetailOrderFilter = (beginDate, endDate, account) => ajax(BASE_URL+'/order/dateDetail', {beginDate, endDate, account})

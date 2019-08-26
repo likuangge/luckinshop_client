@@ -1,5 +1,5 @@
 <template>
-  <el-tabs :tab-position="tabPosition" @tab-click="handleClick" style="height: 600px;">
+  <el-tabs :tab-position="tabPosition" @tab-click="handleClick" style="height: 700px;">
     <el-tab-pane label="个人中心">
       <h2>个人中心</h2>
       <el-divider></el-divider>
@@ -220,13 +220,94 @@
         </div>
       </el-dialog>
     </el-tab-pane>
-    <el-tab-pane label="评论管理" name="comment">
+    <el-tab-pane label="商品评价" name="comment">
+      <h2>我的评价</h2>
+      <el-tabs @tab-click="checkComment" v-model="activeComment">
+        <el-tab-pane label="未完成的评价" name="0">
+          <div v-for="(comment,index) in commentList" :key="index">
+            <div>
+              订单编号:{{comment.orderId}}
+            </div>
+            <el-row style="margin-top:10px">
+              <el-col :span="5">
+                <el-avatar :src="picUrl(comment.displayImage)" shape="square" :size="200"></el-avatar>
+              </el-col>
+              <el-col :span="4" style="margin-top:50px">
+                <div class="name">
+                  {{comment.productName}}
+                </div>
+                <div class="type">
+                  {{comment.typeName}}
+                </div>
+                <div class="type">
+                  购买数量:{{comment.count}}
+                </div>
+              </el-col>
+              <el-col :span="10" style="margin-top:40px">
+                <el-rate v-model="rate[index]" :colors="colors" show-text allow-half="true"></el-rate>
+                <el-input type="textarea" placeholder="请输入评价" v-model="commentText[index]" maxlength="30" show-word-limit style="margin-top:10px"></el-input>
+                <div style="margin-top:10px">
+                  <el-button type="primary" @click="submitComment(comment.commentId,index)">提交评价</el-button>
+                </div>
+              </el-col>
+            </el-row>
+          </div>
+          <div style="text-align:center">
+            <el-pagination layout="total,prev,pager,next,jumper" :total="totalComment" :page-size="commentPageSize" :hide-on-single-page="hideOnSinglePage" @current-change="handleUncommentCurrentChange"></el-pagination>
+          </div>
+        </el-tab-pane>
+        <el-tab-pane label="已完成的评价" name="1">
+          <div v-for="(comment,index) in commentList" :key="index">
+            <div>
+              订单编号:{{comment.orderId}}
+            </div>
+            <el-row>
+              <el-col :span="5" style="margin-top:10px">
+                <el-avatar :src="picUrl(comment.displayImage)" shape="square" :size="200"></el-avatar>
+              </el-col>
+              <el-col :span="4" style="margin-top:60px">
+                <div class="name">
+                  {{comment.productName}}
+                </div>
+                <div class="type">
+                  {{comment.typeName}}
+                </div>
+                <div class="type">
+                  购买数量:{{comment.count}}
+                </div>
+              </el-col>
+              <el-col :span="10" style="margin-top:50px">
+                <el-rate v-model="comment.rate" disabled v-if="!modifyCommentVisible || index != cindex"></el-rate>
+                <el-rate v-model="modifyRate" :colors="colors" show-text allow-half="true" v-else></el-rate>
+                <div v-if="!modifyCommentVisible || index != cindex">
+                  <div style="margin-top:10px">
+                    评价:{{comment.comment}}
+                  </div>
+                  <div style="margin-top:10px">
+                    评价时间:{{comment.time}}
+                  </div>
+                </div>
+                <el-input v-else type="textarea" v-model="modifyCommentText" maxlength="30" show-word-limit style="margin-top:10px"></el-input>
+                <div style="margin-top:10px" v-if="!modifyCommentVisible || index != cindex">
+                  <el-button type="success" @click="ModifyComment(comment.comment,index)">修改评价</el-button>
+                </div>
+                <div style="margin-top:10px" v-else>
+                  <el-button type="primary" @click="confirmModifyComment(comment.commentId)">确认修改</el-button>
+                </div>
+              </el-col>
+            </el-row>
+          </div>
+          <div style="text-align:center">
+            <el-pagination layout="total,prev,pager,next,jumper" :total="totalComment" :page-size="commentPageSize" :hide-on-single-page="hideOnSinglePage" @current-change="handleCommentCurrentChange"></el-pagination>
+          </div>
+        </el-tab-pane>
+      </el-tabs>
     </el-tab-pane>
   </el-tabs>
 </template>
 <script>
   import {mapState} from 'vuex'
-  import {modifyUserInfo,reqModifyCommit,reqAddAddress,reqGetAddress,reqSetDefault,reqDeleteAddress,reqModifyAddress,reqGetOrder,reqCancelOrder,reqGetTime,reqPay,reqReceive,reqCreditInfo,reqSysCancelOrder} from '../../api'
+  import {modifyUserInfo,reqModifyCommit,reqAddAddress,reqGetAddress,reqSetDefault,reqDeleteAddress,reqModifyAddress,reqGetOrder,reqCancelOrder,reqGetTime,reqPay,reqReceive,reqCreditInfo,reqSysCancelOrder,reqSubmitComment,reqCommentCount,reqCommentProduct} from '../../api'
   import axios from 'axios'
   import addressData from '../../assets/citys.json'
   import { Notification } from 'element-ui'
@@ -336,7 +417,19 @@
         orderState: ['未付款','待发货','待收货','已完成','已取消'],
         time: [],
         timer: null,
-        creditList: []
+        creditList: [],
+        activeComment: '',
+        commentList: [],
+        rate: [],
+        colors: ['#99A9BF', '#F7BA2A', '#FF9900'],
+        commentText: [],
+        cindex: '',
+        modifyCommentVisible: false,
+        modifyRate: null,
+        modifyCommentText: '',
+        totalComment: 0,
+        hideOnSinglePage: false,
+        commentPageSize: 2
       }
     },
     computed: {
@@ -435,6 +528,43 @@
             this.allAddress = data
           }).catch(() => {
             this.$message.error("获取地址失败")
+          })
+        }
+        if(tab.name === "comment") {
+          reqCommentCount(this.userId,0).then((data) => {
+            if(data > 0) {
+              this.totalComment = data
+              if(this.totalComment <= 2) {
+                this.hideOnSinglePage = true
+              }
+              reqCommentProduct(this.userId,0,1,this.commentPageSize).then((data) => {
+                this.activeComment = '0'
+                this.commentList = data
+                for(var i = 0;i < data.length;i++) {
+                  this.rate[i] = null
+                  this.commentText[i] = ''
+                }
+              }).catch(() => {
+                this.$message.error("获取未评价列表失败")
+              })
+            } else {
+              reqCommentCount(this.userId,1).then((data) => {
+                this.totalComment = data
+                if(this.totalComment <= 2) {
+                  this.hideOnSinglePage = true
+                }
+                reqCommentProduct(this.userId,1,1,this.commentPageSize).then((data) => {
+                  this.activeComment = '1'
+                  this.commentList = data
+                }).catch(() => {
+                  this.$message.error("获取已评价列表失败")
+                })
+              }).catch(() => {
+                this.$message.error("获取已评价总数量失败")
+              })
+            }
+          }).catch(() => {
+            this.$message.error("获取未评价总数量失败")
           })
         }
       },
@@ -664,6 +794,37 @@
           })
         }
       },
+      checkComment(tab,event) {
+        reqCommentCount(this.userId,tab.name).then((data) => {
+          this.totalComment = data
+          if(this.totalComment <= 2) {
+            this.hideOnSinglePage = true
+          }
+          if(tab.name === '0') {
+            reqCommentProduct(this.userId,0,1,this.commentPageSize).then((data) => {
+              this.activeComment = '0'
+              this.commentList = data
+              for(var i = 0;i < data.length;i++) {
+                this.rate[i] = null
+                this.commentText[i] = ''
+              }
+            }).catch(() => {
+              this.$message.error("获取未评价列表失败")
+            })
+          } else {
+            reqCommentProduct(this.userId,1,1,this.commentPageSize).then((data) => {
+              this.activeComment = '1'
+              this.commentList = data
+              this.modifyRate = null
+              this.modifyCommentText = ''
+            }).catch(() => {
+              this.$message.error("获取未评价列表失败")
+            })
+          }
+        }).catch(() => {
+          this.$message.error("获取评价数量失败")
+        })
+      },
       messageUnpaid() {
         return '您有' + this.unpaidOrder +'个未付款的订单！请到个人中心的订单中心继续付款!'
       },
@@ -735,6 +896,82 @@
               });
             }
           })
+        })
+      },
+      submitComment(commentId,index) {
+        reqSubmitComment({
+          commentId: commentId,
+          rate: this.rate[index],
+          comment: this.commentText[index]
+        }).then((data) => {
+          this.$message.success(data)
+          this.rate.splice(index,1)
+          this.commentText.splice(index,1)
+          reqCommentCount(this.userId,1).then((data) => {
+            this.totalComment = data
+            if(this.totalComment <= 2) {
+              this.hideOnSinglePage = true
+            }
+            reqCommentProduct(this.userId,1,1,this.commentPageSize).then((data) => {
+              this.activeComment = '1'
+              this.commentList = data
+            }).catch(() => {
+              this.$message.error("获取已评价列表失败")
+            })
+          }).catch(() => {
+            this.$message.error("获取已评价数量失败")
+          })
+        }).catch(() => {
+          this.$message.error("提交评价失败!")
+        })
+      },
+      ModifyComment(comment,index) {
+        this.modifyCommentVisible = true
+        this.cindex = index
+        this.modifyCommentText = comment
+      },
+      confirmModifyComment(commentId) {
+        reqSubmitComment({
+          commentId: commentId,
+          rate: this.modifyRate,
+          comment: this.modifyCommentText
+        }).then((data) => {
+          this.$message.success(data)
+          this.modifyRate = null
+          this.modifyCommentText = ''
+          this.modifyCommentVisible = false
+          reqCommentCount(this.userId,1).then((data) => {
+            this.totalComment = data
+            if(this.totalComment <= 2) {
+              this.hideOnSinglePage = true
+            }
+            reqCommentProduct(this.userId,1,1,this.commentPageSize).then((data) => {
+              this.activeComment = '1'
+              this.commentList = data
+            }).catch(() => {
+              this.$message.error("获取已评价列表失败")
+            })
+          }).catch(() => {
+            this.$message.error("获取已评价数量失败")
+          })
+        }).catch(() => {
+          this.$message.error("提交评价失败!")
+        })
+      },
+      handleUncommentCurrentChange(val) {
+        reqCommentProduct(this.userId,0,val,this.commentPageSize).then((data) => {
+          this.activeComment = '0'
+          this.commentList = data
+        }).catch(() => {
+          this.$message.error("获取当前页未评价商品失败")
+        })
+      },
+      handleCommentCurrentChange(val) {
+        reqCommentProduct(this.userId,1,val,this.commentPageSize).then((data) => {
+          this.activeComment = '1'
+          this.commentList = data
+        }).catch(() => {
+          this.$message.error("获取当前页已评价商品失败")
         })
       }
     }
