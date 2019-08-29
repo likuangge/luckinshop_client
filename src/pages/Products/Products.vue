@@ -226,6 +226,10 @@
   import {reqCreateProduct,AdminCreateProductType,AdminChangePropertyValue,modifyProductDetailPicture,reqGetProductPictures,AdminDeleteProductDetailImage,AdminAddProductDetailImage,reqProductCommentCount,reqProductComment} from '../../api'
   import axios from 'axios'
 
+  const specialKey = "[`~!#$^&*()=|{}':;'\\[\\].<>/?~！#￥……&*（）——|{}【】‘；：”“'。，、？]‘'"
+  const priceReg = /^([1-9]{1}([0-9]*)|[0-9]{1})[.][0-9]{1}$/
+  const stockReg = /^[1-9]{1}([0-9]*)$/
+
   export default {
     name: "Products",
     components: {
@@ -293,6 +297,46 @@
       }
     },
     methods: {
+      hasIllegalChar() {
+        for (var i = 0; i < this.CreateProduct.name.length; i++) {
+          if (specialKey.indexOf(this.CreateProduct.name.substr(i, 1)) != -1) {
+            return true 
+          }
+        }
+        return false
+      },
+      isEmptyKeywords() {
+        if(this.CreateProduct.keywords.length > 0) {
+          var flag = 0
+          for(var i = 0;i < this.CreateProduct.keywords.length;i++) {
+            if(this.CreateProduct.keywords[i] != '') {
+              flag = 1
+            } else {
+              this.CreateProduct.keywords.splice(i,1)
+              i--
+            }
+          }
+          if(flag === 0) {
+            return true
+          } else {
+            return false
+          }
+        } else {
+          return true
+        }
+      },
+      isEmptyProperty() {
+        if(this.CreateProduct.properties.length != this.activeProperties.length) {
+          return true
+        } else {
+          for(var i = 0;i < this.CreateProduct.properties.length;i++) {
+            if(this.CreateProduct.properties[i] === '') {
+              return true
+            }
+          }
+          return false
+        }
+      },
       onAdd() {
         this.CreateProduct.keywords.push('')
       },
@@ -368,19 +412,59 @@
         this.$message.warning(`当前限制商品详情页面显示4张图片`);
       },
       createProduct() {
-        reqCreateProduct({
-          productName: this.CreateProduct.name,
-          productPrice: this.CreateProduct.price,
-          productStock: this.CreateProduct.stock,
-          productType: this.activeType,
-          keywords: this.CreateProduct.keywords,
-          properties: this.CreateProduct.properties
-        }).then(() => {
-          console.log("Pass Array", "Pass Array")
-          this.CreateProductFormVisible = false
-        }).catch(() => {
-          this.$message.error("登录失败，请检查网络连接")
-        })
+        if(this.CreateProduct.name != '') {
+          if(this.CreateProduct.name.length <= 10) {
+            if(this.hasIllegalChar()) {
+              this.$message.warning("商品名称包含非法字符")
+            } else {
+              if(this.CreateProduct.price != '') {
+                if(priceReg.test(this.CreateProduct.price)) {
+                  if(this.CreateProduct.stock != '') {
+                    if(stockReg.test(this.CreateProduct.stock)) {
+                      if(this.isEmptyKeywords()) {
+                        this.$message.warning("请至少输入一个关键字")
+                      } else {
+                        console.log("property",this.CreateProduct.properties)
+                        if(this.isEmptyProperty()) {
+                          this.$message.warning("请输入全部商品规格")
+                        } else {
+                          reqCreateProduct({
+                            productName: this.CreateProduct.name,
+                            productPrice: this.CreateProduct.price,
+                            productStock: this.CreateProduct.stock,
+                            productType: this.activeType,
+                            keywords: this.CreateProduct.keywords,
+                            properties: this.CreateProduct.properties
+                          }).then((data) => {
+                            this.$message.info(data)
+                            if(data === '创建成功') {
+                              this.CreateProductFormVisible = false
+                              this.$store.dispatch('Products/getProducts', this.activeType)
+                            }
+                          }).catch(() => {
+                            this.$message.error("登录失败，请检查网络连接")
+                          })
+                         } 
+                      }
+                    } else {
+                      this.$message.warning("请正确输入商品库存")
+                    }
+                  } else {
+                    this.$message.warning("请输入商品库存")
+                  }
+                } else {
+                  this.$message.warning("请输入正确的商品价格并精确至小数点后一位")
+                }
+              } else {
+                this.$message.warning("请输入商品价格")
+              }
+            }
+          } else {
+            this.$message.warning("商品名称不得超过10个字")
+          }
+        } else {
+          this.$message.warning("请输入商品名称")
+        } 
       },
       smallUrl(url) {
         return "/api/pictures/" + url

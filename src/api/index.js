@@ -9,7 +9,7 @@ export const reqLogin = ({account, password, role}) => ajax(BASE_URL+'/login', {
 export const reqInitLogin = () => ajax(BASE_URL+'/user/init')
 
 // 3、修改用户信息
-export const modifyUserInfo = ({username, telephone, email}) => ajax(BASE_URL+'/user/modify', {username, telephone, email}, 'POST')
+export const reqModifyUserInfo = ({userName,telephone,email}) => ajax(BASE_URL+'/user/modify', {userName,telephone,email}, 'POST')
 
 // 4、登出
 export const reqLogout = () => ajax(BASE_URL+'/user/logout')
@@ -87,10 +87,10 @@ export const reqCancelOrder = (orderId) => ajax(BASE_URL+'/order/cancel',{orderI
 export const reqPay = (orderId) => ajax(BASE_URL+'/order/pay',{orderId})
 
 // 29、管理员获得订单
-export const AdminGetOrder = (state) => ajax(BASE_URL+'/admin/getorder',{state})
+export const AdminGetOrder = (state) => ajax(BASE_URL+'/admin/getOrder',{state})
 
 // 30、是否有未发货的订单
-export const reqUnsend = () => ajax(BASE_URL+'/admin/getunsend')
+export const reqUnsend = () => ajax(BASE_URL+'/admin/getUnsend')
 
 // 31、管理员发货
 export const AdminSendOrder = (orderId) => ajax(BASE_URL+'/admin/send',{orderId})
@@ -126,43 +126,43 @@ export const reqPhoneCode = (telephone) => ajax(BASE_URL+'/user/code', {telephon
 export const reqSearchProduct = (type,filter) => ajax(BASE_URL+'/product/search',{type,filter})
 
 // 42、管理员搜索订单
-export const AdminSearchOrder = (type,filter) => ajax(BASE_URL+'/admin/searchorder', {type,filter})
+export const AdminSearchOrder = (type,filter) => ajax(BASE_URL+'/admin/searchOrder', {type,filter})
 
 // 43、管理员获取用户操作记录
-export const AdminUserRecord = () => ajax(BASE_URL+'/admin/userrecord')
+export const AdminUserRecord = (date) => ajax(BASE_URL+'/admin/userRecordCount',{date})
 
 // 44、管理员获取订单操作记录
-export const AdminOrderRecord = () => ajax(BASE_URL+'/admin/orderrecord')
+export const AdminOrderRecord = () => ajax(BASE_URL+'/admin/orderRecordCount')
 
 // 45、管理员获取商品操作记录
-export const AdminProductRecord = () => ajax(BASE_URL+'/admin/productrecord')
+export const AdminProductRecord = () => ajax(BASE_URL+'/admin/productRecordCount')
 
 // 46、管理员获取商品类型信息
-export const AdminProductType = () => ajax(BASE_URL+'/admin/producttype')
+export const AdminProductType = () => ajax(BASE_URL+'/admin/productType')
 
 // 47、管理员更改商品类型状态
-export const AdminChangeTypeState = (typeId) => ajax(BASE_URL+'/admin/typestate',{typeId})
+export const AdminChangeTypeState = (typeId) => ajax(BASE_URL+'/admin/typeState',{typeId})
 
 // 48、管理员更改商品类型规格
-export const AdminChangeProperty = (propertyName,typeId) => ajax(BASE_URL+'/admin/changeproperty',{propertyName,typeId})
+export const AdminChangeProperty = (propertyName,typeId) => ajax(BASE_URL+'/admin/changeProperty',{propertyName,typeId})
 
 // 49、管理员增加商品类型
-export const AdminCreateProductType = ({typeName,propertyName}) => ajax(BASE_URL+'/admin/createtype',{typeName,propertyName},'POST')
+export const AdminCreateProductType = ({typeName,propertyName}) => ajax(BASE_URL+'/admin/createType',{typeName,propertyName},'POST')
 
 // 50、管理员更改商品关键字
-export const AdminChangeKeywords = (keywords,productId) => ajax(BASE_URL+'/admin/changekeywords',{keywords,productId})
+export const AdminChangeKeywords = (keywords,productId) => ajax(BASE_URL+'/admin/changeKeywords',{keywords,productId})
 
 // 51、管理员更改商品价格
-export const AdminChangePrice = (price,productId) => ajax(BASE_URL+'/admin/changeprice',{price,productId})
+export const AdminChangePrice = (price,productId) => ajax(BASE_URL+'/admin/changePrice',{price,productId})
 
 // 52、管理员更改商品库存
-export const AdminChangeStock = (stock,productId) => ajax(BASE_URL+'/admin/changestock',{stock,productId})
+export const AdminChangeStock = (stock,productId) => ajax(BASE_URL+'/admin/changeStock',{stock,productId})
 
 // 53、管理员更改商品状态
-export const AdminChangeProductState = (productId) => ajax(BASE_URL+'/admin/productstate',{productId})
+export const AdminChangeProductState = (productId) => ajax(BASE_URL+'/admin/productState',{productId})
 
 // 54.管理员更改商品规格
-export const AdminChangePropertyValue = (propertyValue,productId) => ajax(BASE_URL+'/admin/propertyvalue',{propertyValue,productId})
+export const AdminChangePropertyValue = (propertyValue,productId) => ajax(BASE_URL+'/admin/propertyValue',{propertyValue,productId})
 
 // 55、系统自动取消订单
 export const reqSysCancelOrder = (orderId) => ajax(BASE_URL+'/order/syscancel',{orderId})
@@ -193,6 +193,24 @@ export const reqProductCommentCount = (productId) => ajax(BASE_URL+'/comment/get
 
 // 64、获取商品评价列表
 export const reqProductComment = (productId,page,limit) => ajax(BASE_URL+'/comment/getProductComment',{productId,page,limit})
+
+// 65、日期筛选订单
+export const AdminDateOrderFilter = (beginDate,endDate,account) => ajax(BASE_URL+'/admin/dateOrder', {beginDate,endDate,account})
+
+// 66、分页获取用户操作记录
+export const AdminGetUserRecord = (page,limit,date) => ajax(BASE_URL+'/admin/getUserRecord',{page,limit,date})
+
+// 67、分页获取订单操作记录
+export const AdminGetOrderRecord = (page,limit) => ajax(BASE_URL+'/admin/getOrderRecord',{page,limit})
+
+// 68、分页获取商品操作记录
+export const AdminGetProductRecord = (page,limit) => ajax(BASE_URL+'/admin/getProductRecord',{page,limit})
+
+// 69、修改积分规则
+export const AdminModifyCreditRule = (baseNumber,benefit) => ajax(BASE_URL+'/admin/modifyCreditRule',{baseNumber,benefit})
+
+// 70、修改密码
+export const reqModifyPassword = (oldPassword,newPassword) => ajax(BASE_URL+'/user/modifyPassword',{oldPassword,newPassword})
 
 // 3、改变用户状态
 export const reqChangeUser = (account) => ajax(BASE_URL+'/user/change', {account}, 'POST')
@@ -249,9 +267,6 @@ export const reqGetBookDetail = (ISBN) => ajax(BASE_URL+'/book/detail', {ISBN})
 
 // 14、删除书籍
 export const reqDeleteBook = (ISBN) => ajax(BASE_URL+'/book/delete', {ISBN})
-
-// 18、日期筛选订单
-export const AdminDateOrderFilter = (beginDate,endDate,account) => ajax(BASE_URL+'/admin/dateOrder', {beginDate,endDate,account})
 
 // 19、日期筛选订单详情
 export const reqDateDetailOrderFilter = (beginDate, endDate, account) => ajax(BASE_URL+'/order/dateDetail', {beginDate, endDate, account})

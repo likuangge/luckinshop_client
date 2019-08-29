@@ -62,7 +62,7 @@ const mutations = {
     },
     setUserInfo(state,userInfo) {
         state.userId = userInfo.userId
-        state.username = userInfo.username
+        state.username = userInfo.userName
         state.telephone = userInfo.telephone
         state.email = userInfo.email
         state.avatar = userInfo.avatar

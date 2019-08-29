@@ -1,5 +1,5 @@
 <template>
-  <el-tabs :tab-position="tabPosition" @tab-click="handleClick" style="height:600px;" v-model="defaulttab">
+  <el-tabs :tab-position="tabPosition" @tab-click="handleClick" style="height:700px;" v-model="defaulttab">
     <el-tab-pane label="用户管理" name="user">
       <h2>用户管理</h2>
       <el-divider></el-divider>
@@ -210,16 +210,31 @@
           <h2>积分管理</h2>
         </el-col>
         <el-col :span="4">
-          <el-button style="margin-top:25px" type="primary">修改积分规则</el-button>
+          <el-popover placement="bottom" width="200" trigger="click">
+            <el-form :model="ModifyCreditRule">
+              积分等级函数基数
+              <el-form-item>
+                <el-input v-model="ModifyCreditRule.baseNumber" clearable></el-input>
+              </el-form-item>
+              积分兑换优惠比例
+              <el-form-item>
+                <el-input v-model="ModifyCreditRule.benefit" clearable></el-input>
+              </el-form-item>
+              <el-form-item>
+                <el-button type="primary" @click="modifyCreditRule">确认修改</el-button>
+              </el-form-item>
+            </el-form>
+            <el-button style="margin-top:25px" type="primary" slot="reference">修改积分规则</el-button>
+          </el-popover>
         </el-col>
       </el-row>
       <el-divider></el-divider>
-        <el-table :data="creditRule" style="width:60%" height="400">
-          <el-table-column type="index"></el-table-column>
-          <el-table-column prop="level" label="积分等级"></el-table-column>
-          <el-table-column prop="credit" label="所需积分"></el-table-column>
-          <el-table-column prop="benefit" label="每1000积分可以兑换的优惠"></el-table-column>
-        </el-table>   
+      <el-table :data="creditRule" style="width:60%" height="500">
+        <el-table-column type="index"></el-table-column>
+        <el-table-column prop="level" label="积分等级"></el-table-column>
+        <el-table-column prop="credit" label="所需积分"></el-table-column>
+        <el-table-column prop="benefit" label="每1000积分可以兑换的优惠"></el-table-column>
+      </el-table>   
     </el-tab-pane>
     <el-tab-pane label="操作记录" name="record">
       <h2>操作记录</h2>
@@ -227,34 +242,41 @@
         <el-tab-pane v-for="(type,index) in recordType" :key="index" :label="type" :name="index">
           <el-table :data=recordList style="width:100%" height="500">
             <el-table-column type="index"></el-table-column>
-            <el-table-column label="用户角色" v-if="type === '用户操作记录'">
+            <el-table-column label="用户角色" v-if="type === '用户操作记录'" align="center" :filters="[{ text:'用户',value:0},{ text:'管理员',value:1}]" :filter-method="filterUserRole" filter-placement="bottom-end">
               <template slot-scope="scope">
                 <p v-if="scope.row.role === 0">用户</p>
                 <p v-else>管理员</p>
               </template>
             </el-table-column>
-            <el-table-column label="用户角色" v-if="type === '订单操作记录'">
+            <el-table-column label="用户角色" v-if="type === '订单操作记录'" align="center" width="100">
               <template slot-scope="scope">
                 <p v-if="scope.row.role === 0">用户</p>
                 <p v-if="scope.row.role === 1">管理员</p>
                 <p v-if="scope.row.role === 2">系统</p>
               </template>
             </el-table-column>
-            <el-table-column label="用户角色" v-if="type === '商品操作记录'">
+            <el-table-column label="用户角色" v-if="type === '商品操作记录'" align="center" width="100">
               <template slot-scope="scope">
                 <p v-if="scope.row.role === 0">用户</p>
                 <p v-else>管理员</p>
               </template>
             </el-table-column>
-            <el-table-column label="用户账号" prop="account"></el-table-column>
-            <el-table-column label="用户行为" v-if="type === '用户操作记录'">
+            <el-table-column label="用户账号" prop="account" align="center"></el-table-column>
+            <el-table-column label="用户行为" v-if="type === '用户操作记录'" align="center">
               <template slot-scope="scope">
                 <p v-if="scope.row.action === 0">登录</p>
                 <p v-if="scope.row.action === 1">登出</p>
                 <p v-if="scope.row.action === 2">评价商品</p>
+                <p v-if="scope.row.action === 3">修改积分等级函数基数</p>
+                <p v-if="scope.row.action === 4">修改积分兑换优惠倍数</p>
+                <p v-if="scope.row.action === 5">修改头像</p>
+                <p v-if="scope.row.action === 6">修改昵称</p>
+                <p v-if="scope.row.action === 7">修改手机号码</p>
+                <p v-if="scope.row.action === 8">修改邮箱</p>
+                <p v-if="scope.row.action === 9">修改密码</p>
               </template>
             </el-table-column>
-            <el-table-column label="用户行为" v-if="type === '订单操作记录'">
+            <el-table-column label="用户行为" v-if="type === '订单操作记录'" align="center">
               <template slot-scope="scope">
                 <p v-if="scope.row.action === 0">下单</p>
                 <p v-if="scope.row.action === 1">付款</p>
@@ -263,7 +285,7 @@
                 <p v-if="scope.row.action === 4">收货</p>
               </template>
             </el-table-column>
-            <el-table-column label="用户行为" v-if="type === '商品操作记录'">
+            <el-table-column label="用户行为" v-if="type === '商品操作记录'" align="center">
               <template slot-scope="scope">
                 <p v-if="scope.row.action === 0">修改商品类型状态</p>
                 <p v-if="scope.row.action === 1">修改商品类型规格</p>
@@ -281,54 +303,88 @@
                 <p v-if="scope.row.action === 13">对商品进行评价</p>
               </template>
             </el-table-column>
-            <el-table-column label="订单编号" prop="orderId" v-if="type === '订单操作记录'"></el-table-column>
-            <el-table-column label="商品类型" prop="type" v-if="type === '商品操作记录'"></el-table-column>
-            <el-table-column label="商品名称" v-if="type === '商品操作记录'">
+            <el-table-column label="订单编号" prop="orderId" v-if="type === '订单操作记录'" align="center"></el-table-column>
+            <el-table-column label="商品类型" prop="type" v-if="type === '商品操作记录'" align="center" width="100"></el-table-column>
+            <el-table-column label="商品名称" v-if="type === '商品操作记录'" align="center" width="100">
               <template slot-scope="scope">
                 <p v-if="scope.row.productName != ''">{{scope.row.productName}}</p>
               </template>
             </el-table-column>
-            <el-table-column label="操作时间" prop="time"></el-table-column>
+            <el-table-column prop="time" align="center">
+              <template slot="header" slot-scope="scope">
+                <el-date-picker v-model="recordDate" type="date" value-format="yyyy-MM-dd" :picker-options="recordPickerOptions" placeholder="选择日期" clearable></el-date-picker>
+              </template>
+            </el-table-column>
           </el-table>
+          <div style="text-align:center;margin-top:10px" v-if="type === '用户操作记录'">
+            <el-pagination layout="total,prev,pager,next,jumper" :total="totalRecord" :page-size="recordPageSize" :hide-on-single-page="hideOnSinglePage" @current-change="handleUserRecordChange"></el-pagination>
+          </div>
+          <div style="text-align:center;margin-top:10px" v-if="type === '订单操作记录'">
+            <el-pagination layout="total,prev,pager,next,jumper" :total="totalRecord" :page-size="recordPageSize" :hide-on-single-page="hideOnSinglePage" @current-change="handleOrderRecordChange"></el-pagination>
+          </div>
+          <div style="text-align:center;margin-top:10px" v-if="type === '商品操作记录'">
+            <el-pagination layout="total,prev,pager,next,jumper" :total="totalRecord" :page-size="recordPageSize" :hide-on-single-page="hideOnSinglePage" @current-change="handleProductRecordChange"></el-pagination>
+          </div>
         </el-tab-pane>
       </el-tabs>
     </el-tab-pane>
     <el-tab-pane label="统计信息" name="statistics">
       <el-tabs type="card">
         <el-tab-pane label="用户订单统计">
-          <div>
-            <el-row>
-              <el-col :span="8">
-                <div>开始日期</div>
-                <el-date-picker v-model="beginDate" type="date" value-format="yyyy-MM-dd" :picker-options="beginPickerOptions" placeholder="选择日期"></el-date-picker>
-              </el-col>
-              <el-col :span="8">
-                <div>结束日期</div>
-                <el-date-picker v-model="endDate" type="date" value-format="yyyy-MM-dd" :picker-options="endPickerOptions" placeholder="选择日期"></el-date-picker>
-              </el-col>
-              <el-col :span="8">
-                <div>选择用户</div>
-                <el-input v-model="dateUser" placeholder="请输入用户账号">
-                  <el-button slot="append" icon="el-icon-search" @click="createOrderChart"></el-button>
-                </el-input>
-              </el-col>
-            </el-row>
-          </div>
+          <el-row>
+            <el-col :span="8">
+              <div>开始日期</div>
+              <el-date-picker v-model="beginDate" type="date" value-format="yyyy-MM-dd" :picker-options="beginPickerOptions" placeholder="选择日期"></el-date-picker>
+            </el-col>
+            <el-col :span="8">
+              <div>结束日期</div>
+              <el-date-picker v-model="endDate" type="date" value-format="yyyy-MM-dd" :picker-options="endPickerOptions" placeholder="选择日期"></el-date-picker>
+            </el-col>
+            <el-col :span="8">
+              <div>选择用户</div>
+              <el-input v-model="dateUser" placeholder="请输入用户账号">
+                <el-button slot="append" icon="el-icon-search" @click="createOrderChart"></el-button>
+              </el-input>
+            </el-col>
+          </el-row>
           <ve-line :data="chartData" :settings="chartSettings" v-if="datePicked" style="margin-top:10px"></ve-line>
-          <!--div v-if="datePicked">
-            <el-card v-for="(object, index) in activities" :key="index">
-              <div>用户{{object.account}}的购买记录</div>
-              <el-timeline :reverse=true>
-                <el-timeline-item v-for="(activity, index) in object.list" :key="index" :timestamp="activity.timestamp">
-                  <div class="text-wrapper">{{activity.content}}</div>
-                </el-timeline-item>
-              </el-timeline>
-            </el-card>
-          </div-->
         </el-tab-pane>
         <el-tab-pane label="商品销售统计">
+          <el-row>
+            <el-col :span="8">
+              <div>开始日期</div>
+              <el-date-picker v-model="beginDate" type="date" value-format="yyyy-MM-dd" :picker-options="beginPickerOptions" placeholder="选择日期"></el-date-picker>
+            </el-col>
+            <el-col :span="8">
+              <div>结束日期</div>
+              <el-date-picker v-model="endDate" type="date" value-format="yyyy-MM-dd" :picker-options="endPickerOptions" placeholder="选择日期"></el-date-picker>
+            </el-col>
+            <el-col :span="8">
+              <div>选择商品</div>
+              <el-row>
+                <el-col :span="12">
+                  <el-select v-model="selectType" placeholder="请选择商品类型">
+                    <el-option v-for="(type,index) in types" :key="index" :label="type" :value="type"></el-option>
+                  </el-select>
+                </el-col>
+                <el-col :span="12">
+                  <el-select v-model="selectProduct" placeholder="请选择商品">
+                    <el-option v-for="(product,index) in chartProducts" :key="index" :label="product.productName" :value="product.productId"></el-option>
+                  </el-select>
+                </el-col>
+              </el-row>
+            </el-col>
+          </el-row>
+          <ve-histogram :data="productData" v-if="productPicked" style="margin-top:10px"></ve-histogram>
         </el-tab-pane>
-        <el-tab-pane label="购买热力图">
+        <el-tab-pane label="购买地图">
+          <div>
+            <div>选择日期</div>
+            <el-date-picker v-model="mapDate" type="date" value-format="yyyy-MM-dd" :picker-options="mapPickerOptions" placeholder="选择日期"></el-date-picker>
+          </div>
+          <div style="width:550px">
+            <ve-map :data="mapData" v-if="mapPicked" style="margin-top:10px"></ve-map>
+          </div>
         </el-tab-pane>
       </el-tabs>
     </el-tab-pane>
@@ -337,8 +393,9 @@
 
 <script>
   import {mapState} from 'vuex'
-  import {AdminGetOrder,AdminSendOrder,AdminCreditRule,AdminUserInfo,AdminChangeState,AdminProductType,AdminGetProduct,AdminSearchOrder,AdminUserRecord,AdminOrderRecord,AdminProductRecord,AdminChangeTypeState,AdminChangeProperty,AdminChangeKeywords,AdminChangePrice,AdminChangeStock,AdminChangeProductState,AdminDateOrderFilter} from '../../api'
+  import {AdminGetOrder,AdminSendOrder,AdminCreditRule,AdminUserInfo,AdminChangeState,AdminProductType,AdminGetProduct,AdminSearchOrder,AdminUserRecord,AdminOrderRecord,AdminProductRecord,AdminChangeTypeState,AdminChangeProperty,AdminChangeKeywords,AdminChangePrice,AdminChangeStock,AdminChangeProductState,AdminDateOrderFilter,AdminGetUserRecord,AdminGetOrderRecord,AdminGetProductRecord,AdminModifyCreditRule} from '../../api'
   import { Notification } from 'element-ui'
+  import addressData from '../../assets/citys.json'
 
   const telReg = /^1[3|4|5|6|7|8|9]\d{9}$/
   const emReg = /^\w+([-+.']\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*$/
@@ -390,13 +447,44 @@
             return this.dateConstrain(time, "END")
           }
         },
+        mapPickerOptions: {
+          disabledDate: (time) => {
+            return this.dateConstrain(time, "MAP")
+          }
+        },
+        recordPickerOptions: {
+          disabledDate: (time) => {
+            return this.dateConstrain(time, "MAP")
+          }
+        },
         datePicked: false,
         chartData: {
           columns:['日期','花费金额','订单完成数量'],
           rows: []
         },
-        activities: [],
-        dateUser: ''
+        dateUser: '',
+        selectType: '',
+        selectProduct: '',
+        productData: {
+          columns:['日期','购买数量'],
+          rows: []
+        },
+        productPicked: false,
+        mapDate: null,
+        mapData: {
+          columns:['位置','订单完成数量','订单取消数量'],
+          rows: []
+        },
+        mapPicked: false,
+        totalRecord: '',
+        recordPageSize: 10,
+        hideOnSinglePage: false,
+        ModifyCreditRule: {
+          baseNumber: '',
+          benefit: ''
+        },
+        recordDate: null,
+        dateSelect: false
       }
     },
     computed: {
@@ -404,7 +492,9 @@
         isLogin: state=>state.Person.isLogin,
         isAdmin: state=>state.Person.isAdmin,
         unsendOrder: state=>state.Order.unsendOrder,
-        users: state=>state.Person.users
+        users: state=>state.Person.users,
+        types: state=>state.Products.productTypes,
+        chartProducts: state=>state.Products.products
       }),
       dateDiff: function () {
         if (this.beginDate != null && this.endDate != null) {
@@ -431,6 +521,128 @@
       } else if(!this.isAdmin) {
         this.$router.push('/home')
         this.$message.warning("您不是管理员！")
+      }
+    },
+    watch: {
+      selectType() {
+        this.selectProduct = ''
+        this.$store.dispatch('Products/getProducts', this.selectType)
+      },
+      selectProduct() {
+        if(this.beginDate != null) {
+          if(this.endDate != null) {
+            this.productData.rows = []
+            AdminDateOrderFilter(this.beginDate,this.endDate,"").then((data) => {
+              this.productPicked = true
+              let date = new Date(this.beginDate)
+              for(let i=0;i<this.dateDiff;i++) {
+                let exist = false
+                let totalFinishOrder = 0
+                for(let order of data) {
+                  let orderDate = new Date(order.createTime)
+                  if(orderDate.getDate() == date.getDate()) {
+                    if(order.state === 3) {
+                      for(let product of order.orderProducts) {
+                        if(product.productId === this.selectProduct) {
+                          console.log(orderDate.getDate(),product)
+                          exist = true
+                          totalFinishOrder += product.count
+                        }
+                      } 
+                    }
+                  }
+                }
+                if(!exist) {
+                  this.productData.rows.push({
+                    '日期': (date.getMonth()+1).toString()+"/"+date.getDate(),
+                    '购买数量': 0
+                  })
+                } else {
+                  this.productData.rows.push({
+                    '日期': (date.getMonth()+1).toString()+"/"+date.getDate(),
+                    '购买数量': totalFinishOrder
+                  })
+                }
+                date.setDate(date.getDate() + 1)
+              }
+              this.beginDate = null
+              this.endDate = null
+            })
+          } else {
+            this.$message.warning("请选择结束日期")
+            this.selectType = ''
+            this.selectProduct = ''
+          }
+        } else {
+          this.$message.warning("请选择开始日期")
+          this.selectType = ''
+          this.selectProduct = ''
+        }
+      },
+      mapDate() {
+        this.mapData.rows = []
+        AdminDateOrderFilter(this.mapDate,this.mapDate,"").then((data) => {
+          this.mapPicked = true
+          for(let i = 0;i < addressData.length;i++) {
+            let totalFinishOrder = 0
+            let totalCancelOrder = 0
+            for(let order of data) {
+              if(order.address.indexOf(addressData[i]['label']) == 0) {
+                console.log(order.address,addressData[i]['label'])
+                if(order.state === 3) {
+                  totalFinishOrder++
+                }
+                if(order.state === 4) {
+                  totalCancelOrder++
+                }
+              }
+            } 
+            this.mapData.rows.push({
+              '位置': addressData[i]['label'].substr(0,addressData[i]['label'].length-1),
+              '订单完成数量': totalFinishOrder,
+              '订单取消数量': totalCancelOrder
+            })
+          }
+        })
+      },
+      recordDate() {
+        if(this.recordDate != null) {
+          this.dateSelect = true
+          if(this.activeRecord === '0') {
+            AdminUserRecord(this.recordDate).then((data) => {
+              this.activeRecord = '0'
+              this.totalRecord = data
+              if(this.totalRecord <= this.recordPageSize) {
+                this.hideOnSinglePage = true
+              }
+              AdminGetUserRecord(1,this.recordPageSize,this.recordDate).then((data) => {
+                this.recordList = data
+              }).catch(() => {
+                this.$message.error("获取用户操作记录失败")
+              })
+            }).catch(() => {
+              this.$message.error("获取用户操作记录数量失败")
+            })
+          }
+        } else {
+          this.dateSelect = false
+          if(this.activeRecord === '0') {
+            AdminUserRecord('').then((data) => {
+              this.activeRecord = '0'
+              this.totalRecord = data
+              if(this.totalRecord <= this.recordPageSize) {
+                this.hideOnSinglePage = true
+              }
+              AdminGetUserRecord(1,this.recordPageSize,'').then((data) => {
+                this.recordList = data
+              }).catch(() => {
+                this.$message.error("获取用户操作记录失败")
+              })
+            }).catch(() => {
+              this.$message.error("获取用户操作记录数量失败")
+            })
+          }
+        }
       }
     },
     methods: {
@@ -467,9 +679,19 @@
           })
         }
         if(tab.name == "record") {
-          AdminUserRecord().then((data) => {
+          AdminUserRecord('').then((data) => {
             this.activeRecord = '0'
-            this.recordList = data
+            this.totalRecord = data
+            if(this.totalRecord <= 2) {
+              this.hideOnSinglePage = true
+            }
+            AdminGetUserRecord(1,this.recordPageSize,'').then((data) => {
+              this.recordList = data
+            }).catch(() => {
+              this.$message.error("获取用户操作记录失败")
+            })
+          }).catch(() => {
+            this.$message.error("获取用户操作记录数量失败")
           })
         }
       },
@@ -478,6 +700,9 @@
       },
       filterMethod(value,row) {
         return row.state === value
+      },
+      filterUserRole(value,row) {
+        return row.role === value
       },
       checkOrder(tab,event) {
         if(this.orderState.length > 4) {
@@ -491,18 +716,51 @@
       },
       checkRecord(tab,event) {
         if(tab.name === 0) {
-          AdminUserRecord().then((data) => {
-            this.recordList = data
+          AdminUserRecord('').then((data) => {
+            this.activeRecord = '0'
+            this.totalRecord = data
+            if(this.totalRecord <= 2) {
+              this.hideOnSinglePage = true
+            }
+            AdminGetUserRecord(1,this.recordPageSize,'').then((data) => {
+              this.recordList = data
+            }).catch(() => {
+              this.$message.error("获取用户操作记录失败")
+            })
+          }).catch(() => {
+            this.$message.error("获取用户操作记录数量失败")
           })
         }
         if(tab.name === 1) {
           AdminOrderRecord().then((data) => {
-            this.recordList = data
+            this.activeRecord = 1
+            this.totalRecord = data
+            if(this.totalRecord <= 2) {
+              this.hideOnSinglePage = true
+            }
+            AdminGetOrderRecord(1,this.recordPageSize).then((data) => {
+              this.recordList = data
+            }).catch(() => {
+              this.$message.error("获取订单操作记录失败")
+            })
+          }).catch(() => {
+            this.$message.error("获取订单操作记录数量失败")
           })
         }
         if(tab.name === 2) {
           AdminProductRecord().then((data) => {
-            this.recordList = data
+            this.activeRecord = 2
+            this.totalRecord = data
+            if(this.totalRecord <= 2) {
+              this.hideOnSinglePage = true
+            }
+            AdminGetProductRecord(1,this.recordPageSize).then((data) => {
+              this.recordList = data
+            }).catch(() => {
+              this.$message.error("获取商品操作记录失败")
+            })
+          }).catch(() => {
+            this.$message.error("获取商品操作记录数量失败")
           })
         }
       },
@@ -646,7 +904,8 @@
             let begin = new Date(time)
             let end = new Date(this.endDate)
             return this.amongOneMonth(begin, end)
-          } else {
+          } 
+          if(order == "END") {
             let begin = new Date(this.beginDate)
             let end = new Date(time)
             return this.amongOneMonth(begin, end)
@@ -701,10 +960,6 @@
                   this.beginDate = null
                   this.endDate = null
                   this.dateUser = ''
-                  let list = []
-                  let accountList = []
-                  let dateObject = {content: ''}
-                  let accountObject = {}
                 }).catch(() => {
                   this.$message.error("获取过滤订单失败")
                 })
@@ -720,6 +975,42 @@
         } else {
           this.$message.warning("请选择开始日期")
         }
+      },
+      handleUserRecordChange(val) {
+        if(this.dateSelect) {
+          AdminGetUserRecord(val,this.recordPageSize,this.recordDate).then((data) => {
+            this.recordList = data
+          }).catch(() => {
+            this.$message.error("获取用户操作记录失败")
+          })
+        } else {
+          AdminGetUserRecord(val,this.recordPageSize,'').then((data) => {
+            this.recordList = data
+          }).catch(() => {
+            this.$message.error("获取用户操作记录失败")
+          })
+        }
+      },
+      handleOrderRecordChange(val) {
+        AdminGetOrderRecord(val,this.recordPageSize).then((data) => {
+          this.recordList = data
+        }).catch(() => {
+          this.$message.error("获取订单操作记录失败")
+        })
+      },
+      handleProductRecordChange(val) {
+        AdminGetProductRecord(val,this.recordPageSize).then((data) => {
+          this.recordList = data
+        }).catch(() => {
+          this.$message.error("获取商品操作记录失败")
+        })
+      },
+      modifyCreditRule() {
+        AdminModifyCreditRule(this.ModifyCreditRule.baseNumber,this.ModifyCreditRule.benefit).then(() => {
+          AdminCreditRule().then((data) => {
+            this.creditRule = data
+          })
+        })
       }
     }
   }

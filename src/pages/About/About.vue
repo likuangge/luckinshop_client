@@ -1,7 +1,33 @@
 <template>
   <el-tabs :tab-position="tabPosition" @tab-click="handleClick" style="height: 700px;">
     <el-tab-pane label="个人中心">
-      <h2>个人中心</h2>
+      <el-row style="height:50px">
+        <el-col :span="21">
+          <h2>个人中心</h2>
+        </el-col>
+        <el-col :span="3">
+          <el-popover placement="bottom" width="200" trigger="click">
+            <el-form>
+              原密码
+              <el-form-item>
+                <el-input v-model="currentPassword" clearable show-password></el-input>
+              </el-form-item>
+              新密码
+              <el-form-item>
+                <el-input v-model="newPassword" clearable show-password></el-input>
+              </el-form-item>
+              再次输入新密码
+              <el-form-item>
+                <el-input v-model="againNewPassword" clearable show-password></el-input>
+              </el-form-item>
+              <el-form-item>
+                <el-button type="primary" @click="modifyPassword">确认修改</el-button>
+              </el-form-item>
+            </el-form>
+            <el-button style="margin-top:15px" type="primary" slot="reference">修改密码</el-button>
+          </el-popover>
+        </el-col>
+      </el-row>
       <el-divider></el-divider>
       <el-container>
         <el-aside>
@@ -10,7 +36,7 @@
             <el-button style="margin-top:30px" @click="beginUpload">Change your avatar</el-button>
           </div>
           <div v-else style="text-align:center">
-            <el-upload class="avatar-uploader" action="/api/avatarUpload" :show-file-list="false" :on-success="onSuccess" :onError="onError" :before-upload="beforeUpload" :on-remove="onRemove" :http-request="picUpload">
+            <el-upload class="avatar-uploader" action="/api/avatarUpload" :show-file-list="false" :on-success="onSuccess" :onError="onError" :on-remove="onRemove" :http-request="picUpload">
                 <img v-if="imageUrl" :src="imageUrl" class="avatar">
                 <i v-else class="el-icon-plus avatar-uploader-icon"></i>
             </el-upload>
@@ -20,23 +46,23 @@
         <el-main>
           <el-container>
             <el-main>
-              <el-form :model="Modify" ref="Modify" :rules="modify_rules">
+              <el-form :model="Modify">
                 Username
-                <el-form-item prop="username">
+                <el-form-item>
                   <el-input v-model="Modify.username" class="accountInput" :placeholder=username clearable></el-input>
                 </el-form-item>
                 Telephone
-                <el-form-item prop="telephone">
+                <el-form-item>
                   <el-input v-model="Modify.telephone" class="accountInput" :placeholder=telephone clearable></el-input>
                 </el-form-item>
                 Email
-                <el-form-item prop="email">
+                <el-form-item>
                   <el-input v-model="Modify.email" class="accountInput" :placeholder=email clearable></el-input>
                 </el-form-item>
               </el-form>
             </el-main>
             <el-footer style="margin-left:70px">
-              <el-button @click.prevent="modify('Modify')">Update Profile</el-button>
+              <el-button @click.prevent="modifyUserInfo">Update Profile</el-button>
             </el-footer>
           </el-container>
         </el-main>
@@ -307,10 +333,14 @@
 </template>
 <script>
   import {mapState} from 'vuex'
-  import {modifyUserInfo,reqModifyCommit,reqAddAddress,reqGetAddress,reqSetDefault,reqDeleteAddress,reqModifyAddress,reqGetOrder,reqCancelOrder,reqGetTime,reqPay,reqReceive,reqCreditInfo,reqSysCancelOrder,reqSubmitComment,reqCommentCount,reqCommentProduct} from '../../api'
+  import {reqModifyUserInfo,reqModifyCommit,reqAddAddress,reqGetAddress,reqSetDefault,reqDeleteAddress,reqModifyAddress,reqGetOrder,reqCancelOrder,reqGetTime,reqPay,reqReceive,reqCreditInfo,reqSysCancelOrder,reqSubmitComment,reqCommentCount,reqCommentProduct,reqModifyPassword,reqLogout} from '../../api'
   import axios from 'axios'
   import addressData from '../../assets/citys.json'
   import { Notification } from 'element-ui'
+
+  const telReg = /^1[3|4|5|6|7|8|9]\d{9}$/
+  const specialKey = "[`~!#$^&*()=|{}':;'\\[\\].<>/?~！#￥……&*（）——|{}【】‘；：”“'。，、？]‘'"
+  const emReg = /^\w+([-+.']\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*$/
 
   function InitTime(endtime){
     var mm,ss = null
@@ -327,58 +357,6 @@
 
   export default {
     data() {
-      var Username = (rule, value, callback) => {
-        if (value === ''){
-          callback()
-        } else if(value.length < 7 || value.length > 17){
-          this.$alert('用户名长度为7到17个字符', '', {
-            confirmButtonText: '确定'
-          });
-        } else {
-          var flag = 0;
-          var specialKey = "[`~!#$^&*()=|{}':;'\\[\\].<>/?~！#￥……&*（）——|{}【】‘；：”“'。，、？]‘'";
-          for (var i = 0; i < value.length; i++) {
-            if (specialKey.indexOf(value.substr(i, 1)) != -1) {
-              this.$alert('用户名中不得含有非法字符', '', {
-                confirmButtonText: '确定'
-              });
-              flag = 1;
-              break;
-            }
-          }
-          if(flag === 0){
-            callback()
-          }
-        }
-      }
-      var Telephone = (rule, value, callback) => {
-        if (value === ''){
-          callback()
-        } else {
-          const telReg = /^1[3|4|5|6|7|8|9]\d{9}$/
-          if (telReg.test(value)) {
-            callback()
-          } else {
-            this.$alert('请输入正确的手机号码', '', {
-              confirmButtonText: '确定'
-            });
-          }
-        }
-      }
-      var Email = (rule, value, callback) => {
-        if (value === ''){
-          callback()
-        } else {
-          const emReg = /^\w+([-+.']\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*$/
-          if (emReg.test(value)) {
-            callback()
-          } else {
-            this.$alert('请输入正确的邮箱地址', '', {
-              confirmButtonText: '确定'
-            });
-          }
-        }
-      }
       return {
         options: addressData,
         checked: false,
@@ -390,11 +368,6 @@
           username: '',
           telephone: '',
           email: ''
-        },
-        modify_rules: {
-          username: [{ validator: Username, trigger: 'blur'}],
-          telephone: [{ validator: Telephone, trigger: 'blur'}],
-          email: [{ validator: Email, trigger: 'blur'}]
         },
         allAddress: [],
         addAddress: false,
@@ -429,7 +402,10 @@
         modifyCommentText: '',
         totalComment: 0,
         hideOnSinglePage: false,
-        commentPageSize: 2
+        commentPageSize: 2,
+        currentPassword: '',
+        newPassword: '',
+        againNewPassword: ''
       }
     },
     computed: {
@@ -574,25 +550,45 @@
       picUrl(picName) {
         return "/api/pictures/" + picName
       },
-      modify(formName) {
-        this.$refs[formName].validate((valid) => {
-          if (valid) {
-            modifyUserInfo({
-              username: this.Modify.username,
-              telephone: this.Modify.telephone,
-              email: this.Modify.email
-            }).then((data) => {
-              this.$refs[formName].resetFields()
-              this.$store.commit('Person/setUsername', data.username)
-              this.$store.commit('Person/setTelephone', data.telephone)
-              this.$store.commit('Person/setEmail', data.email)
-            }).catch(() => {
-              this.$message.error("登录失败，请检查网络连接")
-            })
-          }else {
-            return false
+      hasIllegalChar() {
+        for (var i = 0; i < this.Modify.username.length; i++) {
+          if (specialKey.indexOf(this.Modify.username.substr(i, 1)) != -1) {
+            return true 
           }
-        })
+        }
+        return false
+      },
+      modifyUserInfo() {
+        if(this.hasIllegalChar()) {
+          this.$message.warning("用户昵称中包含非法字符")
+        } else {
+          if((this.Modify.username.length < 7 || this.Modify.username > 17) && this.Modify.username != '') {
+            this.$message.warning("用户昵称的长度为7~17")
+          } else {
+            if(telReg.test(this.Modify.telephone) || this.Modify.telephone === '') {
+              if(emReg.test(this.Modify.email) || this.Modify.email === '') {
+                reqModifyUserInfo({
+                  userName: this.Modify.username,
+                  telephone: this.Modify.telephone,
+                  email: this.Modify.email
+                }).then((data) => {
+                  this.Modify.username = ''
+                  this.Modify.telephone = ''
+                  this.Modify.email = ''
+                  this.$store.commit('Person/setUsername', data.userName)
+                  this.$store.commit('Person/setTelephone', data.telephone)
+                  this.$store.commit('Person/setEmail', data.email)
+                }).catch(() => {
+                  this.$message.error("登录失败，请检查网络连接")
+                })
+              } else {
+                this.$message.warning("请输入正确的邮箱地址")
+              }
+            } else {
+              this.$message.warning("请输入正确的手机号码")
+            }
+          }
+        }
       },
       beginUpload() {
         this.isUpload = true
@@ -615,17 +611,6 @@
       },
       onError(err) {
         this.$message.error(err)
-      },
-      beforeUpload(file) {
-        const isJPG = file.type === 'image/jpeg';
-        const isLt2M = file.size / 1024 / 1024 < 2;
-        if (!isJPG) {
-          this.$message.error('上传头像图片只能是 JPG 格式!');
-        }
-        if (!isLt2M) {
-          this.$message.error('上传头像图片大小不能超过 2MB!');
-        }
-        return isJPG && isLt2M;
       },
       picUpload(data) {
         let file = data.file
@@ -973,6 +958,36 @@
         }).catch(() => {
           this.$message.error("获取当前页已评价商品失败")
         })
+      },
+      modifyPassword() {
+        if(this.currentPassword != '') {
+          if(this.newPassword != '') {
+            if(this.againNewPassword != '') {
+              if(this.againNewPassword != this.newPassword) {
+                this.$message.warning("两次输入的新密码不同")
+              } else {
+                reqModifyPassword(this.currentPassword,this.newPassword).then((data) => {
+                  if(data != 'OK') {
+                    this.$message.info(data)
+                  } else {
+                    reqLogout().then((data) => {
+                      Notification.closeAll()
+                      this.$store.commit('Person/changeLogin')
+                      this.$store.commit('ShopCart/clear')
+                      this.$router.push('/home')
+                    })
+                  }
+                })
+              }
+            } else {
+              this.$message.warning("请再次填写新密码")
+            }
+          } else {
+            this.$message.warning("请填写新密码")
+          }
+        } else {
+          this.$message.warning("请填写原密码")
+        }
       }
     }
   }
