@@ -361,7 +361,7 @@
       handleRemove(file, fileList) {
         let url = '/api/productPictureDelete'
         let formData = new FormData()
-        formData.append("fileName",file.name)
+        formData.append("file",file.raw)
 
         axios({
           method: 'POST',
@@ -588,6 +588,7 @@
           if(data === '修改成功') {
             reqGetProductPictures(roleId).then((data) => {
               this.$store.commit('ClickProduct/updateClickProductPictures', data)
+              this.ModifyPictureVisible = false
             }).catch(() => {
               this.$message.error("获取图片失败")
             })

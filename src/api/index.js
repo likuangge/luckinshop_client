@@ -57,7 +57,7 @@ export const reqAddAddress = ({receiver,telephone,province,city,district,detail,
 export const reqGetAddress = () => ajax(BASE_URL+'/address/get')
 
 // 19、修改地址默认状态
-export const reqSetDefault = (addressId) => ajax(BASE_URL+'/address/setdefault',{addressId})
+export const reqSetDefault = (addressId) => ajax(BASE_URL+'/address/setDefault',{addressId})
 
 // 20、删除地址
 export const reqDeleteAddress = (addressId) => ajax(BASE_URL+'/address/delete',{addressId})
@@ -72,13 +72,13 @@ export const reqClearOrderSession = (orderId) => ajax(BASE_URL+'/order/clear',{o
 export const reqCreateOrder = (addressId,benefitCount) => ajax(BASE_URL+'/order/create',{addressId,benefitCount})
 
 // 24、获取订单过期时间
-export const reqGetTime = () => ajax(BASE_URL+'/order/gettime')
+export const reqGetTime = () => ajax(BASE_URL+'/order/getTime')
 
 // 25、获得相应用户订单
 export const reqGetOrder = (state) => ajax(BASE_URL+'/order/get',{state})
 
 // 26、是否有未支付的订单
-export const reqUnpaid = () => ajax(BASE_URL+'/order/getunpaid')
+export const reqUnpaid = () => ajax(BASE_URL+'/order/getUnpaid')
 
 // 27、取消订单
 export const reqCancelOrder = (orderId) => ajax(BASE_URL+'/order/cancel',{orderId})

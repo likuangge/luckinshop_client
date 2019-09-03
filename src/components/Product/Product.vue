@@ -5,7 +5,7 @@
     </div>
     <div class="name" @click="showDetail">{{product.productName}}</div>
     <div class="price" @click="showDetail" v-show="!isAdmin">
-      Price:￥{{product.price | numFilter}}
+      价格:￥{{product.price | numFilter}}
       <el-tooltip effect="dark" :content="product.stock" placement="top">
         <el-tag type="info" v-if="product.stock > 0">有库存</el-tag>
         <el-tag type="warning" v-else>无库存</el-tag>
