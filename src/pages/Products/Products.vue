@@ -25,11 +25,16 @@
           </el-col>
         </el-row>
         <el-divider></el-divider>
-        <el-row>
-          <el-col :span="productSpanValue" v-for="(product, index) in products">
-            <Product :product="product" :index="index" v-show="!isClick && product.state === 0"></Product>
-          </el-col>
-        </el-row>
+        <div>
+          <el-row>
+            <el-col :span="productSpanValue" v-for="(product, index) in products" :key="index">
+              <Product v-if="index >= start && index <= end" :product="product" :index="index" v-show="!isClick && product.state === 0"></Product>
+            </el-col>
+          </el-row>
+          <div v-show="!isClick" style="text-align:center;margin-top:50px">
+            <el-pagination layout="total,prev,pager,next,jumper" :total="products.length" :page-size="productPageSize" :hide-on-single-page="productHideOnSinglePage" @current-change="handleProductCurrentChange"></el-pagination>
+          </div>
+        </div>
         <el-row v-show="isClick" :gutter="20">
           <el-col :span="8">
             <el-carousel indicator-position="none"  height="360px">
@@ -265,7 +270,11 @@
         totalComment: 0,
         hideOnSinglePage: false,
         commentPageSize: 2,
-        commentList: []
+        commentList: [],
+        productHideOnSinglePage: false,
+        productPageSize:4,
+        start: 0,
+        end: 3
       }
     },
     computed: {
@@ -284,7 +293,7 @@
         return "添加" + this.activeType
       },
       productSpanValue: function() {
-        return 24/this.products.length
+        return 24/this.productPageSize
       }
     },
     mounted() {
@@ -470,6 +479,8 @@
         return "/api/pictures/" + url
       },
       handleClick(tab, event) {
+        this.start = 0
+        this.end = 3
         this.$store.dispatch('Products/getAllTypes')
         if(this.isClick) {
           this.$store.commit('ClickProduct/changeClick')
@@ -618,6 +629,10 @@
         }).ctach(() => {
           this.$message.error("获取评价列表失败")
         })
+      },
+      handleProductCurrentChange(val) {
+        this.start = (val - 1) * this.productPageSize
+        this.end = this.start + this.productPageSize - 1
       }
     }
   }
