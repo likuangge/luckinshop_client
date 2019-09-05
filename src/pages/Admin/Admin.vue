@@ -274,6 +274,7 @@
                 <p v-if="scope.row.action === 7">修改手机号码</p>
                 <p v-if="scope.row.action === 8">修改邮箱</p>
                 <p v-if="scope.row.action === 9">修改密码</p>
+                <p v-if="scope.row.action === 10">修改用户状态</p>
               </template>
             </el-table-column>
             <el-table-column label="用户行为" v-if="type === '订单操作记录'" align="center">
