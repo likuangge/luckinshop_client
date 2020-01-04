@@ -10,25 +10,31 @@
 import {mapState} from 'vuex'
 import Navbar from './components/Navbar/Navbar'
 import ShopCart from './components/ShopCart/ShopCart'
-import {reqInitLogin,reqAdminInitLogin,reqInitShopCart,reqUnpaid,reqUnsend,reqUnreceive,AdminUserInfo,reqSysCancelOrder} from './api'
+import {reqInitLogin,reqInitShopCart,reqUnpaid,reqUnsend,reqUnreceive,AdminUserInfo,reqSysCancelOrder,reqGetUserInfo} from './api'
 import { Notification } from 'element-ui'
 
 export default {
   name: 'App',
   mounted () {
-    this.initWebSocket()
-    this.$store.dispatch('Products/getAllTypes')
-    this.$store.dispatch('Products/getPropertyName', '家用电器')
-    this.$store.dispatch('Products/getProducts', '家用电器')
-    this.$store.commit('Products/updateActiveType', '家用电器')
-    reqInitLogin().then((data) => {
-      if (data.isLogin) {
-        this.$store.commit('Person/changeLogin')
-        this.$store.commit('Person/setUserInfo',data)
-        Notification.closeAll()
-        reqUnpaid().then((data) => {
-          if(data > 0) {
-            this.$store.commit('Order/changeUnpaidOrder', data)
+    let user = JSON.parse(window.sessionStorage.getItem('user'))
+    if(user != null) {
+      Notification.closeAll()
+      reqGetUserInfo(user.memberId).then((data) => {
+        this.$store.commit('Person/setUser',data.data)
+      })
+      this.initWebSocket(user)
+      reqInitShopCart({
+        memberId: user.memberId
+      }).then((data) => {
+        this.$store.commit('ShopCart/displayShopCart', data.data)
+      })
+      Notification.closeAll()
+      reqUnpaid({
+        memberId: user.memberId
+      }).then((data) => {
+        if(data.success) {
+          this.$store.commit('Order/changeUnpaidOrder',data.data)
+          if(this.unpaidOrder > 0) {
             this.$notify({
               title: '未付款!',
               dangerouslyUseHTMLString: true,
@@ -39,53 +45,9 @@ export default {
               position: 'bottom-left'
             });
           }
-        })
-        reqUnreceive().then((data) => {
-          if(data > 0) {
-            this.$store.commit('Order/changeUnreceiveOrder', data)
-            this.$notify({
-              title: '未收货!',
-              dangerouslyUseHTMLString: true,
-              message: this.messageUnreceive(),
-              type:'warning',
-              showClose: false,
-              duration: 0,
-              position: 'bottom-left'
-            });
-          }
-        })
-      } else {
-        reqAdminInitLogin().then((data) => {
-          if(data.isLogin){
-            this.$store.commit('Person/changeAdmin')
-            this.$store.commit('Person/changeLogin')
-            this.$store.commit('Person/setUsername', data.username)
-            reqUnsend().then((data) => {
-              if(data > 0) {
-                this.$store.commit('Order/changeUnsendOrder', data)
-                this.$notify({
-                  title: '未发货!',
-                  dangerouslyUseHTMLString: true,
-                  message: this.messageUnsend(),
-                  type:'warning',
-                  showClose: false,
-                  duration: 0,
-                  position: 'bottom-left'
-                });
-              }
-            })
-            AdminUserInfo().then((data) => {
-              this.$store.commit('Person/setUsers',data)
-            })
-          } else {
-
-          }
-        })
-      }
-    }),
-    reqInitShopCart().then((data) => {
-      this.$store.commit('ShopCart/displayShopCart', data)
-    })
+        }
+      })
+    }
   },
   data() {
     return {
@@ -98,7 +60,6 @@ export default {
   },
   computed: {
     ...mapState({
-      isAdmin: state=>state.Person.isAdmin,
       unpaidOrder: state=>state.Order.unpaidOrder,
       unsendOrder: state=>state.Order.unsendOrder,
       unreceiveOrder: state=>state.Order.unreceiveOrder
@@ -114,8 +75,8 @@ export default {
     messageUnreceive() {
       return this.unreceiveOrder +'个未收货的订单！请到个人中心的订单中心确认收货!'
     },
-    initWebSocket() {
-      const wsuri = "ws://127.0.0.1:8081/websocket"
+    initWebSocket(user) {
+      const wsuri = "ws://10.104.130.53:9081/membersrpc/messagesocket?user=" + user.memberId
       this.websocket = new WebSocket(wsuri);
       this.websocket.onmessage = this.websocketOnMessage
       this.websocket.onopen = this.websocketOnOpen
@@ -129,24 +90,23 @@ export default {
       this.initWebSocket()
     },
     websocketOnMessage(e) {
-      reqSysCancelOrder(e.data).then(() => {
-        this.$store.commit('Order/minus')
-        this.$message.info("订单" + e.data + "已自动取消！")
-        Notification.closeAll()
-        if(this.unpaidOrder > 0) {
-          this.$notify({
-            title: '未付款!',
-            dangerouslyUseHTMLString: true,
-            message: this.messageUnpaid(),
-            type:'warning',
-            showClose: false,
-            duration: 0,
-            position: 'bottom-left'
-          });
-        }
-      })
+      this.$store.commit('Order/minus')
+      this.$message.info(e.data)
+      console.log("websocket",e.data)
+      Notification.closeAll()
+      if(this.unpaidOrder > 0) {
+        this.$notify({
+          title: '未付款!',
+          dangerouslyUseHTMLString: true,
+          message: this.messageUnpaid(),
+          type:'warning',
+          showClose: false,
+          duration: 0,
+          position: 'bottom-left'
+        });
+      }
     },
-    websocketClose(e) { 
+    websocketClose(e) {
       console.log('断开连接',e)
     }
   }

@@ -1,15 +1,11 @@
 const state = {
 	unpaidOrder: 0,
-    unsendOrder: 0,
     unreceiveOrder: 0
 }
 
 const mutations = {
 	changeUnpaidOrder(state, number) {
         state.unpaidOrder = number
-    },
-    changeUnsendOrder(state, number) {
-        state.unsendOrder = number
     },
     changeUnreceiveOrder(state, number) {
         state.unreceiveOrder = number
@@ -18,10 +14,9 @@ const mutations = {
     	state.unpaidOrder++
     },
     minus(state) {
-        state.unpaidOrder--
-    },
-    unsendMinus(state) {
-        state.unsendOrder--
+        if(state.unpaidOrder > 0) {
+            state.unpaidOrder--
+        }
     },
     unreceiveMinus(state) {
         state.unreceiveOrder--

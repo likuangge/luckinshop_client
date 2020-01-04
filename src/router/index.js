@@ -3,8 +3,8 @@ import Router from 'vue-router'
 
 import Home from '../pages/Home/Home.vue'
 import About from '../pages/About/About.vue'
-import Admin from '../pages/Admin/Admin.vue'
 import Products from '../pages/Products/Products.vue'
+import OCR from '../pages/OCR/ocr.vue'
 
 Vue.use(Router)
 
@@ -25,8 +25,8 @@ export default new Router({
         }
     },
     {
-        path: '/admin',
-        component: Admin,
+        path: '/ocr',
+        component: OCR,
         meta: {
             showNavDetail: true,
         }

@@ -1,46 +1,124 @@
 <template>
   <div class="product">
     <div style="cursor: pointer" @click="showDetail">
-      <el-image :src="displayUrl"></el-image>
+      <el-image :src="displayUrl" style="height:350px"></el-image>
     </div>
     <div class="name" @click="showDetail">{{product.productName}}</div>
     <div class="price" @click="showDetail" v-show="!isAdmin">
-      价格:￥{{product.price | numFilter}}
-      <el-tooltip effect="dark" :content="product.stock" placement="top">
-        <el-tag type="info" v-if="product.stock > 0">有库存</el-tag>
+      价格:￥{{product.price}}
+      <el-tooltip effect="dark" :content="product.stock.productNum" placement="top">
+        <el-tag type="info" v-if="product.stock.productNum > 0">有库存</el-tag>
         <el-tag type="warning" v-else>无库存</el-tag>
       </el-tooltip>
     </div>
-    <el-tag v-show="!isAdmin" v-for="(keyword) in product.keywords" :key="keyword" size="medium">{{keyword}}</el-tag>
-    <div v-show="!isAdmin">
+    <div style="height:50px">
+      <el-tag v-for="(keyword,index) in product.keywords" :key="index" size="medium">{{keyword.keyword}}</el-tag>
+    </div>
+    <div>
       <el-container class="count">
         <el-button icon="el-icon-minus" @click="minus"></el-button>
         <el-input v-model="count"></el-input>
         <el-button icon="el-icon-plus" @click="plus"></el-button>
       </el-container>
-      <el-container>
-        <el-button type="info" icon="el-icon-star-off">收藏</el-button>
-        <el-button type="primary" class="shopcart" @click="addtocart">加入购物车</el-button>
-      </el-container>
+      <el-row>
+        <el-col :span="8">
+          <div>
+            <el-button type="info" icon="el-icon-star-off" v-if="product.flashSale === 0" @click="buy">立即购买</el-button>
+            <el-tooltip effect="dark" :content="getZhe(product)" placement="top" v-else>
+              <el-tag type="success">秒杀折扣</el-tag>
+            </el-tooltip>
+          </div>
+        </el-col>
+        <el-col :span="16">
+          <div>
+            <el-button type="primary" class="shopcart" @click="addtocart" v-if="product.flashSale === 0">加入购物车</el-button>
+            <el-button type="primary" class="shopcart" @click="buy(product)" v-else>立即购买</el-button>
+          </div>
+        </el-col>
+      </el-row>
     </div>
-    <div v-show="isAdmin">
-      <el-button type="info" icon="el-icon-upload" @click="ModifyPicture">修改商品展示图片</el-button>
-    </div>
-    <el-dialog title="修改商品展示图片" :visible.sync="ModifyPictureVisible" center>
-      <el-upload class="avatar-uploader" action="/api/productDisplayPictureUpload" :on-success="onSuccess" :http-request="displayImageUpload">
-        <img v-if="displayImageUrl === product.displayImage" :src="smallUrl(displayImageUrl)" class="avatar">
-        <img v-else :src="displayImageUrl" class="avatar">
-      </el-upload>
-      <div slot="footer">
-        <el-button type="primary" @click="confirm(product.productId)">确认修改</el-button>
+    <el-dialog title="秒杀确认" :visible.sync="secVisible" :before-close=onClose>
+      <el-row>
+        <el-col :span="12">
+          <div>
+            <el-row>
+              <el-col :span="10" v-if="order != null">
+                <el-image :src="picUrl(order.productDTO.displayImage)"></el-image>
+              </el-col>
+              <el-col :span="14">
+                <div>
+                  <div class="ordertype" v-if="order != null">{{order.productDTO.productType}}</div>
+                  <div class="ordername" v-if="order != null">{{order.productDTO.productName}}</div>
+                  <div class="ordermoney" v-if="order != null">
+                    共{{this.count}}件,总计{{order.totalMoney | numFilter}}元
+                  </div>
+                </div>
+              </el-col>
+            </el-row>
+          </div>
+        </el-col>
+        <el-col :span="12">
+          <div class="time">
+            请选择配送地址
+          </div>
+          <div style="margin-top:25px">
+            <div>
+              <div>
+                <el-radio-group v-model="selectAddress">
+                  <div v-if="defaultAddress != null">
+                    <el-radio :label=defaultAddress.addressNo>
+                      <span>默认地址</span>
+                      <div>
+                        <span>{{defaultAddress.receiver}}</span><span></span>
+                        <span>{{defaultAddress.phoneNum}}</span>
+                      </div>
+                      <div>
+                        <span>{{defaultAddress.info}}</span>
+                      </div>
+                    </el-radio>
+                  </div>
+                  <div v-for="(address,index) in otherAddress" :key="index" style="margin-top:10px">
+                    <el-radio :label=address.addressNo>
+                      <span>{{address.receiver}}</span><span></span>
+                      <span>{{address.phoneNum}}</span>
+                      <div>
+                        <span>{{address.info}}</span>
+                      </div>
+                    </el-radio>
+                  </div>
+                </el-radio-group>
+              </div>
+              <div>
+                <div class="ordertotalmoney" v-if="order != null">
+                  秒杀价格{{order.secKillMoney | numFilter}}元
+                </div>
+              </div>
+              <div>
+                <el-button type="success" @click="pay(product)" style="margin-left:200px">提交订单</el-button>
+              </div>
+            </div>
+          </div>
+        </el-col>      
+      </el-row>
+    </el-dialog>
+    <el-dialog :visible.sync="isPay" title="付款" @close="payClose">
+      <div style="font-size:40px">
+        {{this.min}}分{{this.second}}秒后订单自动取消！
+      </div>
+      <div style="margin-top:50px">
+        <el-button type="info" @click="finishPay">完成付款</el-button>
+        <el-button type="warning" @click="cancelPay">取消订单</el-button>
       </div>
     </el-dialog>
   </div>
 </template>
 <script>
   import {mapState} from 'vuex'
-  import {reqGetProductPictures,insertShopCart,AdminModifyProductDisplayImage} from '../../api'
+  import {insertShopCart,reqInitShopCart,reqConfirmSecOrder,reqGetAddress,reqCreateSecOrder,reqPay,reqCancelOrder} from '../../api'
   import axios from 'axios'
+
+  const MIN_COUNT = 1
+  const TIME_COUNT = 59
 
   export default {
     name: "Products",
@@ -51,25 +129,35 @@
     data() {
       return {
         count: 1,
-        ModifyPictureVisible: false,
-        displayImageUrl: ''
+        secVisible: false,
+        order: null,
+        otherAddress: [],
+        defaultAddress: null,
+        selectAddress: '',
+        min: '',
+        second: '',
+        timer: null,
+        isPay: false,
+        orderNo: ''
       }
     },
     computed: {
       ...mapState({
         isLogin:state=>state.Person.isLogin,
-        isAdmin:state=>state.Person.isAdmin,
+        user: state=>state.Person.user,
+        shopcart: state=>state.ShopCart.products,
         activeType: state=>state.Products.activeType,
-        productProperties: state=>state.Products.productPropertyNames
+        unpaidOrder: state=>state.Order.unpaidOrder,
+        types: state=>state.Products.productTypes
       }),
       displayUrl: function() {
-        let url = "/api/pictures/" + this.product.displayImage
+        let url = "http://10.104.131.158/" + this.product.displayImage
         return url
       }
     },
     filters: {
       numFilter (value) {
-        let realVal = parseFloat(value).toFixed(1)
+        let realVal = parseFloat(value).toFixed(2)
         return realVal
       }
     },
@@ -80,82 +168,222 @@
         }
       },
       plus() {
-        if(this.count < this.product.stock) {
+        if(this.count < this.product.stock.productNum) {
           this.count++
         }
       },
-      onSuccess(res, file) {
-        this.displayImageUrl = URL.createObjectURL(file.raw)
+      picUrl(picName) {
+        return "http://10.104.131.158/" + picName
       },
-      smallUrl(url) {
-        return "/api/pictures/" + url
+      getZhe(product) {
+        return product.secScale * 10 + "折"
       },
       showDetail() {
-        this.$store.dispatch('Products/getAllTypes')
+        console.log("点击",this.product)
+        var flag = 0
+        for(var i = 0;i < this.types.length;i++) {
+          if(this.product.parentType === this.types[i].typeNo) {
+            if(this.types[i].activity === 1) {
+              flag = 1
+              this.$store.commit('ClickProduct/updateActivity',1)
+              this.$store.commit('ClickProduct/updateActivityContent',this.types[i].activityContent)
+              break
+            }
+          }
+        }
+        if(flag === 0) {
+          this.$store.commit('ClickProduct/updateActivity',0)
+          this.$store.commit('ClickProduct/updateActivityContent','')
+        }
         this.$store.commit('ClickProduct/changeClick')
-        this.$store.commit('Products/updateActiveType',this.product.typeName)
+        this.$store.commit('Products/updateActiveType',this.product.parentType)
+        this.$store.commit('Products/updateActiveSecondType',this.product.productType)
         this.$store.commit('ClickProduct/updateClickProduct', this.product)
-        this.$store.commit('ClickProduct/updateClickProductProperties', this.productProperties)
-        reqGetProductPictures(this.product.productId).then((data) => {
-          this.$store.commit('ClickProduct/updateClickProductPictures', data)
-        }).catch(() => {
-          this.$message.error("获取图片失败")
-        })
+        this.$router.push('/products')
       },
       addtocart() {
-        this.$store.dispatch('ShopCart/addtocart', {
-          productId: this.product.productId,
-          displayImage: this.product.displayImage,
-          productName: this.product.productName,
-          typeName: this.product.typeName,
-          count: this.count,
-          price: this.product.price,
-          money: this.count*this.product.price,
-          stock: this.product.stock,
-        }).then(() => {
-          insertShopCart({
-            productId:this.product.productId,
-            count:this.count
-          }).then((data) => {
-            this.count = 1
-          }).catch(() => {
-            this.$message.error("网络连接异常")
-          })
-          this.$message.success("成功加入购物车")
-        }).catch(() => {
-          this.$message.error("无法重复加入购物车")
-        })
-      },
-      ModifyPicture() {
-        this.ModifyPictureVisible = true
-        this.displayImageUrl = this.product.displayImage
-      },
-      displayImageUpload(data) {
-        let file = data.file
-        let url = '/api/productDisplayPictureUpload'
-        let formData = new FormData()
-        formData.append("file",file)
-        axios({
-          method: 'POST',
-          url: url,
-          headers: {
-            'Content-Type': 'multipart/form-data;charset=UTF-8'
-          },
-          data:formData
-        }).then((response) => {
-          data.onSuccess(response.data)
-        })
-      },
-      confirm(productId) {
-        AdminModifyProductDisplayImage(productId).then((data) => {
-          if(data === '修改成功') {
-            this.ModifyPictureVisible = false
-            this.displayImageUrl = ''
-            this.$store.dispatch('Products/getProducts', this.activeType)
+        if(this.isLogin) {
+          var flag = 0
+          if(this.shopcart.length > 0) {
+            for(var i = 0;i < this.shopcart.length;i++) {
+              if(this.product.productNo === this.shopcart[i].productNo) {
+                flag = 1
+                break
+              }
+            }
+          }
+          if(flag === 1) {
+            this.$message.warning("无法重复加入购物车")
           } else {
-            this.$message.warning(data)
+            insertShopCart({
+              memberId: this.user.memberId,
+              productNo: this.product.productNo,
+              quantity: this.count,
+              stock: this.product.stock.productNum
+            }).then(() => {
+              this.count = 1
+              this.$message.success("成功加入购物车")
+              reqInitShopCart({
+                memberId: this.user.memberId
+              }).then((data) => {
+                this.$store.commit('ShopCart/displayShopCart', data.data)
+              })
+            }).catch(() => {
+              this.$message.error("网络连接异常")
+            })
+          }
+        } else {
+          this.$message.warning("请先登录")
+        }
+      },
+      buy(product) {
+        if(this.user.status === 2) {
+          this.$message.error("您已被禁用,无法购买商品。")
+        } else {
+          if(!this.isLogin) {
+            this.$message.info("请先登录")
+          } else {
+            reqGetAddress(this.user.memberId).then((data) => {
+              let address = data.data
+              for(var i = 0;i < address.length;i++) {
+                if(address[i].defaultAddress === 1) {
+                  this.defaultAddress = address[i]
+                  this.selectAddress = address[i].addressNo
+                } else {
+                  this.otherAddress.push(address[i])
+                }
+              }
+            }).catch(() => {
+              this.$message.error("获取地址失败")
+            })
+            reqConfirmSecOrder({
+              memberId: this.user.memberId,
+              productNo: product.productNo,
+              quantity: this.count
+            }).then((data) => {
+              this.order = data.data
+              this.secVisible = true
+            }).catch(() => {
+              this.$message.error("获取订单失败")
+            })
+          }    
+        }
+      },
+      onClose() {
+        this.$confirm('关闭窗口将自动取消订单, 是否继续?', '提示', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }).then(() => {
+          this.$message({
+            type: 'success',
+            message: '取消成功!'
+          });
+          this.selectAddress = ''
+          this.defaultAddress = ''
+          this.otherAddress = []
+          this.secVisible = false
+        }).catch(() => {});
+      },
+      pay(product) {
+        reqCreateSecOrder({
+          memberId: this.user.memberId,
+          productNo: product.productNo,
+          quantity: this.count,
+          addressNo: this.selectAddress
+        }).then((data) => {
+          if(data.success) {
+            this.orderNo = data.data
+            if(!this.timer) {
+              this.second = 0
+              this.min = MIN_COUNT
+              this.timer = setInterval(() => {
+                if(this.second > 0 && this.second <= TIME_COUNT) {
+                  this.second--
+                }
+                if(this.second === 0 && this.min > 0 && this.min <= MIN_COUNT) {
+                  this.min--
+                  this.second = TIME_COUNT;
+                } 
+                if(this.second === 0 && this.min === 0) {
+                  this.isPay = false
+                  this.$store.commit('Order/minus')
+                  clearInterval(this.timer);
+                  this.timer = null;
+                  this.min = ''
+                  this.second = ''
+                }
+              },1000)
+            }
+            console.log("order",this.order)
+            this.$store.commit('Order/add')
+            this.isPay = true
+            this.secVisible = false
+            this.defaultAddress = ''
+            this.selectAddress = ''
+            this.otherAddress = []
+          } else {
+            this.$message.warning(data.statusInfo)
+            this.secVisible = false
+            this.defaultAddress = ''
+            this.selectAddress = ''
+            this.otherAddress = []        
+          }
+        }).catch(() => {
+          this.$message.error("创建订单失败")
+        })
+      },
+      finishPay() {
+        reqPay({
+          memberId: this.user.memberId,
+          orderNo: this.orderNo
+        }).then((data) => {
+          if(data.success) {
+            this.$message.success(data.statusInfo)
+            this.$store.commit('Order/minus')
+            clearInterval(this.timer);
+            this.timer = null;
+            this.min = ''
+            this.second = ''
+            this.isPay = false
+          } else {
+            this.$message.warning(data.statusInfo)
           }
         })
+      },
+      cancelPay() {
+        reqCancelOrder({
+          memberId: this.user.memberId,
+          orderNo: this.orderNo
+        }).then(() => {
+          this.$store.commit('Order/minus')
+          clearInterval(this.timer);
+          this.timer = null;
+          this.min = ''
+          this.second = ''
+          this.isPay = false
+        }).catch()
+      },
+      message() {
+        return '您有' + this.unpaidOrder +'个未付款的订单！请到个人中心的订单中心继续付款!'
+      },
+      payClose() {
+        clearInterval(this.timer);
+        this.timer = null;
+        this.min = ''
+        this.second = ''
+        Notification.closeAll()
+        if(this.unpaidOrder > 0){
+          this.$notify({
+            title: '未付款!',
+            dangerouslyUseHTMLString: true,
+            message: this.message(),
+            type:'warning',
+            showClose: false,
+            duration: 0,
+            position: 'bottom-left'
+          });
+        }
       }
     }
   }
@@ -205,5 +433,29 @@
     width: 250px;
     height: 250px;
     line-height: 250px;
+  }
+  .ordertype{
+    font-family: 仿宋;
+    font-size: 20px;
+    margin-top:20px;
+  }
+  .ordername{
+    font-family: 等线;
+    font-size: 24px;
+    margin-top:20px;
+  }
+  .ordermoney{
+    font-family: tohoma,arial;
+    font-size: 15px;
+  }
+  .ordertotalmoney{
+    font-weight: 500;
+    font-size: 20px;
+    font-family: tohoma,arial;
+    margin-top: 20px
+  }
+  .time{
+    font-family: 等线;
+    font-size: 24px;
   }
 </style>

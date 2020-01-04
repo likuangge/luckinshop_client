@@ -49,15 +49,15 @@
               <el-form :model="Modify">
                 Username
                 <el-form-item>
-                  <el-input v-model="Modify.username" class="accountInput" :placeholder=username clearable></el-input>
+                  <el-input v-model="Modify.username" class="accountInput" :placeholder="user.nickname" clearable></el-input>
                 </el-form-item>
                 Telephone
                 <el-form-item>
-                  <el-input v-model="Modify.telephone" class="accountInput" :placeholder=telephone clearable></el-input>
+                  <el-input v-model="Modify.telephone" class="accountInput" :placeholder="user.phoneNum" clearable></el-input>
                 </el-form-item>
                 Email
                 <el-form-item>
-                  <el-input v-model="Modify.email" class="accountInput" :placeholder=email clearable></el-input>
+                  <el-input v-model="Modify.email" class="accountInput" :placeholder="user.email" clearable></el-input>
                 </el-form-item>
               </el-form>
             </el-main>
@@ -68,106 +68,74 @@
         </el-main>
       </el-container>
     </el-tab-pane>
-    <el-tab-pane label="订单中心" name="order">
-      <h2>订单中心</h2>
-      <el-tabs @tab-click="checkOrder" v-model="activeOrder">
-        <el-tab-pane v-for="(state,index) in orderState" :key="index" :label="state" :name="index">
-          <el-table :data=orderList style="width:100%" height="450">
-            <el-table-column type="expand">
-              <template slot-scope="props">
-                <el-row v-for="(product,index) in props.row.orderProducts" :key="index">
-                  <el-col :span="6">
-                    <el-avatar :src="picUrl(product.displayImage)" shape="square" :size="200"></el-avatar>
-                  </el-col>
-                  <el-col :span="4">
-                    <div class="name">
-                      {{product.productName}}
-                    </div>
-                    <div class="type">
-                      {{product.typeName}}
-                    </div>
-                    <div class="type">
-                      购买数量:{{product.count}}
-                    </div>
-                    <div style="margin-top:15px">
-                      <el-tag v-for="(keyword,index) in product.keywords" :key="index" size="medium">{{keyword}}</el-tag>
-                    </div>
-                  </el-col>
-                  <el-col :span="12">
-                    <!--div v-for="(property,index) in product.propertyName" :key="property" class="property">
-                      {{property}}:{{product.propertyValue[index]}}
-                    </div-->
-                    <el-form inline class="demo-table-expand" label-width="80px">
-                      <el-form-item v-for="(property,index) in product.propertyName" :key="index" :label=property>
-                        <span>{{product.propertyValue[index]}}</span>
-                      </el-form-item>
-                    </el-form>
-                  </el-col>
-                </el-row>
-              </template>
-            </el-table-column>
-            <el-table-column type="index" fixed="left"></el-table-column>
-            <el-table-column label="订单编号" prop="orderId" width="168"></el-table-column>
-            <el-table-column label="收货人姓名" prop="receiver" width="100"></el-table-column>
-            <el-table-column label="收货人手机" prop="telephone" width="125"></el-table-column>
-            <el-table-column label="收货人地址" prop="address" width="325"></el-table-column>
-            <el-table-column label="订单总价格" width="100">
-              <template slot-scope="scope">
-                <p>{{scope.row.totalMoneyBeforeBenefit | numFilter}}</p>
-              </template>
-            </el-table-column>
-            <el-table-column label="使用优惠券数量" prop="benefitCount" width="150"></el-table-column>
-            <el-table-column label="优惠金额" prop="benefitMoney"></el-table-column>
-            <el-table-column label="实付金额">
-              <template slot-scope="scope">
-                <p>{{scope.row.totalMoneyBeforeBenefit - scope.row.benefitMoney | numFilter}}</p>
-              </template>
-            </el-table-column>
-            <el-table-column label="订单创建时间" prop="createTime" width="175"></el-table-column>
-            <el-table-column label="商品详情" width="100">请展开显示</el-table-column>
-            <el-table-column v-if="index === 0" width="100">
-              <template slot-scope="scope">
-                <el-link type="primary" @click="pay(scope.row.orderId)">立即付款</el-link>
-              </template>
-            </el-table-column>
-            <el-table-column v-if="index === 0" width="100">
-              <template slot-scope="scope">
-                <el-link type="primary" @click="cancelOrder(scope.row.orderId)">取消订单</el-link>
-              </template>
-            </el-table-column>
-            <el-table-column v-if="index === 0" width="150">
-              <template slot-scope="scope">
-                剩余时间:{{scope.row.djs}}
-              </template>
-            </el-table-column>
-            <el-table-column v-if="index === 2" width="150">
-              <template slot-scope="scope">
-                <el-button type="primary" @click="receive(scope.row.orderId)">确认收货</el-button>
-              </template>
-            </el-table-column>
-          </el-table>
-        </el-tab-pane>
-      </el-tabs>
+    <el-tab-pane label="OCR" name="order">
+      <h2>OCR</h2>
+      <el-table :data=orderList style="width:100%" height="450" @expand-change="expandChange">
+        <el-table-column type="index" fixed="left"></el-table-column>
+        <el-table-column label="订单编号" prop="orderNo" width="200"></el-table-column>
+        <el-table-column label="是否秒杀" prop="typeStr" width="100"></el-table-column>
+        <el-table-column label="收货人姓名" prop="receiverName" width="100"></el-table-column>
+        <el-table-column label="收货人手机" prop="phone" width="125"></el-table-column>
+        <el-table-column label="收货人地址" prop="address" width="250"></el-table-column>
+        <el-table-column label="参与满减活动金额" prop="fullReduction" width="150"></el-table-column>
+        <el-table-column label="优惠券信息" prop="couponContent" width="150"></el-table-column>
+      </el-table>
+      <div style="text-align:center">
+        <el-pagination layout="total,prev,pager,next,jumper" :total="totalOrder" :page-size="orderPageSize" :hide-on-single-page="hideOrderOnSinglePage" @current-change="handleOrderCurrentChange" :current-page.sync="currentOrderPage"></el-pagination>
+      </div>
     </el-tab-pane>
-    <el-tab-pane label="积分详情" name="credit">
+    <el-tab-pane label="积分与余额详情" name="credit">
       <el-row>
-        <el-col :span="3">
-          <h2>积分详情</h2>
+        <el-col :span="5">
+          <h2>积分与余额详情</h2>
         </el-col>
-        <el-col :span="4">
-          <el-tag style="margin-top:20px">当前积分:{{currentCredit}}</el-tag>
+        <el-col :span="3">
+          <el-tag style="margin-top:20px">当前积分:{{user.points}}</el-tag>
+        </el-col>
+        <el-col :span="3">
+          <el-tag style="margin-top:20px">当前余额:{{user.balance}}</el-tag>
+        </el-col>
+        <el-col :span="2">
+          <el-popover placement="bottom" width="150" trigger="click">
+            <el-form>
+              充值金额
+              <el-form-item>
+                <el-input v-model.number="balance" clearable></el-input>
+              </el-form-item>
+              <el-form-item>
+                <el-button type="primary" @click="charge">确认充值</el-button>
+              </el-form-item>
+            </el-form>
+            <el-button style="margin-top:15px" type="primary" slot="reference">充值</el-button>
+          </el-popover>
+        </el-col>
+        <el-col :span="2">
+          <el-popover placement="bottom" width="150" trigger="click">
+            <el-form>
+              兑换积分
+              <el-form-item>
+                <el-input v-model.number="change" clearable></el-input>
+              </el-form-item>
+              <el-form-item>
+                <el-button type="primary" @click="exchange">确认兑换</el-button>
+              </el-form-item>
+            </el-form>
+            <el-button style="margin-top:15px" type="primary" slot="reference">兑换</el-button>
+          </el-popover>
         </el-col>
       </el-row>
       <el-divider></el-divider>
       <el-timeline>
-        <el-timeline-item v-for="(creditInfo, index) in creditList" :key="index" :timestamp="creditInfo.changeTime">
-          <div v-if="creditInfo.action === 0">
-            增加{{creditInfo.credit}}
-          </div>
-          <div v-else>
-            使用{{creditInfo.credit}}
-          </div>
-        </el-timeline-item>
+        <div style="height:500px;overflow:auto">
+          <el-timeline-item v-for="(creditInfo, index) in creditList" :key="index" :timestamp="creditInfo.time" hide-timestamp=true>
+            <div>
+              {{creditInfo.typeStr}}{{creditInfo.change}}
+            </div>
+            <div>
+              {{creditInfo.timeStr}}
+            </div>
+          </el-timeline-item>
+        </div>
       </el-timeline>
     </el-tab-pane>
     <el-tab-pane label="地址管理" name="address">
@@ -175,15 +143,12 @@
       <el-divider></el-divider>
       <el-table :data="allAddress" style="width: 100%">
         <el-table-column prop="receiver" label="收件人姓名" width="100"></el-table-column>
-        <el-table-column prop="telephone" label="收件人手机" width="150"></el-table-column>
-        <el-table-column prop="province" label="省/自治区" width="100"></el-table-column>
-        <el-table-column prop="city" label="市/城区" width="100"></el-table-column>
-        <el-table-column prop="district" label="区/县" width="100"></el-table-column>
-        <el-table-column prop="detail" label="详细地址" width="150"></el-table-column>
-        <el-table-column prop="isDefault" width="100">
+        <el-table-column prop="phoneNum" label="收件人手机" width="150"></el-table-column>
+        <el-table-column prop="info" label="收件地址" width="300"></el-table-column>
+        <el-table-column prop="defaultAddress" width="150">
           <template slot-scope="scope">
-            <el-tag type="info" v-if="scope.row.isDefault">默认地址</el-tag>
-            <el-link type="primary" v-else @click="setDefault(scope.row.addressId)">设为默认地址</el-link>
+            <el-tag type="info" v-if="scope.row.defaultAddress === 1">默认地址</el-tag>
+            <el-link type="primary" v-else @click="setDefault(scope.row.addressNo)">设为默认地址</el-link>
           </template>
         </el-table-column>
         <el-table-column width="100">
@@ -193,7 +158,7 @@
         </el-table-column>
         <el-table-column width="100">
           <template slot-scope="scope">
-            <el-link type="primary" @click="deleteAddress(scope.row.addressId)">删除地址</el-link>
+            <el-link type="primary" @click="deleteAddress(scope.row.addressNo)">删除地址</el-link>
           </template>
         </el-table-column>
         <el-table-column align="right">
@@ -234,7 +199,7 @@
             <el-input v-model="ModifyAddress.telephone" style="width:500px"></el-input>
           </el-form-item>
           <el-form-item label="收获地址">
-            <el-cascader v-model="ModifyAddress.pcd" :options="options" placeholder="请选择省\市\区" style="width:460px" clearable></el-cascader>
+            <el-cascader v-model="ModifyAddress.pcd" :options="options" placeholder="请选择省\市\区" style="width:500px" clearable></el-cascader>
           </el-form-item>
           <el-form-item>
             <el-input type="textarea" v-model="ModifyAddress.detail" placeholder="详细地址"></el-input>
@@ -246,94 +211,100 @@
         </div>
       </el-dialog>
     </el-tab-pane>
-    <el-tab-pane label="商品评价" name="comment">
+    <el-tab-pane name="comment" >
+      <span slot="label" v-if="replyUnreadCount === 0">
+        我的消息
+      </span>
+      <span slot="label" v-else>
+        我的消息&nbsp
+        <el-badge :value="replyUnreadCount" />
+      </span>
       <h2>我的评价</h2>
       <el-tabs @tab-click="checkComment" v-model="activeComment">
-        <el-tab-pane label="未完成的评价" name="0">
+        <el-tab-pane name="replied">
+          <span slot="label" v-if="replyUnreadCount === 0">
+            回复我的
+          </span>
+          <span slot="label" v-else>
+            回复我的&nbsp
+            <el-badge :value="replyUnreadCount" />
+          </span>
           <div v-for="(comment,index) in commentList" :key="index">
-            <div>
-              订单编号:{{comment.orderId}}
-            </div>
-            <el-row style="margin-top:10px">
-              <el-col :span="5">
-                <el-avatar :src="picUrl(comment.displayImage)" shape="square" :size="200"></el-avatar>
+            <el-row>
+              <el-col :span="3">
+                <el-avatar :src="picUrl(comment.userImage)" shape="square" :size="100"></el-avatar>
               </el-col>
-              <el-col :span="4" style="margin-top:50px">
-                <div class="name">
-                  {{comment.productName}}
+              <el-col :span="21">
+                <div>
+                  {{comment.nickName}}
+                  <el-image :src=navAvatar style="width:30px;height:15px" v-if="comment.readStatus === 0"></el-image>
                 </div>
-                <div class="type">
-                  {{comment.typeName}}
+                <div>
+                  {{comment.createTimeStr}}
                 </div>
-                <div class="type">
-                  购买数量:{{comment.count}}
+                <div class="message">
+                  <p>{{comment.replyComment.commentContent}}</p>
                 </div>
-              </el-col>
-              <el-col :span="10" style="margin-top:40px">
-                <el-rate v-model="rate[index]" :colors="colors" show-text allow-half="true"></el-rate>
-                <el-input type="textarea" placeholder="请输入评价" v-model="commentText[index]" maxlength="30" show-word-limit style="margin-top:10px"></el-input>
-                <div style="margin-top:10px">
-                  <el-button type="primary" @click="submitComment(comment.commentId,index)">提交评价</el-button>
-                </div>
+                <el-row>
+                  <el-col :span="21">
+                    {{comment.commentContent}}
+                  </el-col>
+                  <el-col :span="3"> 
+                    <el-button @click="openReply(comment)">回复</el-button>
+                  </el-col>
+                </el-row>
+                <el-divider></el-divider>
               </el-col>
             </el-row>
           </div>
           <div style="text-align:center">
-            <el-pagination layout="total,prev,pager,next,jumper" :total="totalComment" :page-size="commentPageSize" :hide-on-single-page="hideOnSinglePage" @current-change="handleUncommentCurrentChange"></el-pagination>
+            <el-pagination layout="total,prev,pager,next,jumper" :total="totalComment" :page-size="commentPageSize" :hide-on-single-page="hideOnSinglePage" @current-change="handleCommentCurrentChange" :current-page.sync="commentCurrentPage"></el-pagination>
           </div>
         </el-tab-pane>
-        <el-tab-pane label="已完成的评价" name="1">
+        <el-tab-pane label="我回复的" name="reply">
           <div v-for="(comment,index) in commentList" :key="index">
-            <div>
-              订单编号:{{comment.orderId}}
+            <div class="message">
+              回复:{{comment.replyUserNickName}}:{{comment.replyComment.commentContent}}
             </div>
-            <el-row>
-              <el-col :span="5" style="margin-top:10px">
-                <el-avatar :src="picUrl(comment.displayImage)" shape="square" :size="200"></el-avatar>
-              </el-col>
-              <el-col :span="4" style="margin-top:60px">
-                <div class="name">
-                  {{comment.productName}}
-                </div>
-                <div class="type">
-                  {{comment.typeName}}
-                </div>
-                <div class="type">
-                  购买数量:{{comment.count}}
-                </div>
-              </el-col>
-              <el-col :span="10" style="margin-top:50px">
-                <el-rate v-model="comment.rate" disabled v-if="!modifyCommentVisible || index != cindex"></el-rate>
-                <el-rate v-model="modifyRate" :colors="colors" show-text allow-half="true" v-else></el-rate>
-                <div v-if="!modifyCommentVisible || index != cindex">
-                  <div style="margin-top:10px">
-                    评价:{{comment.comment}}
-                  </div>
-                  <div style="margin-top:10px">
-                    评价时间:{{comment.time}}
-                  </div>
-                </div>
-                <el-input v-else type="textarea" v-model="modifyCommentText" maxlength="30" show-word-limit style="margin-top:10px"></el-input>
-                <div style="margin-top:10px" v-if="!modifyCommentVisible || index != cindex">
-                  <el-button type="success" @click="ModifyComment(comment.comment,index)">修改评价</el-button>
-                </div>
-                <div style="margin-top:10px" v-else>
-                  <el-button type="primary" @click="confirmModifyComment(comment.commentId)">确认修改</el-button>
-                </div>
-              </el-col>
-            </el-row>
+            <div>
+              {{comment.commentContent}}
+            </div>
+            <div>
+              回复时间:{{comment.createTimeStr}}
+            </div>
+            <el-divider></el-divider>
           </div>
           <div style="text-align:center">
-            <el-pagination layout="total,prev,pager,next,jumper" :total="totalComment" :page-size="commentPageSize" :hide-on-single-page="hideOnSinglePage" @current-change="handleCommentCurrentChange"></el-pagination>
+            <el-pagination layout="total,prev,pager,next,jumper" :total="totalComment" :page-size="commentPageSize" :hide-on-single-page="hideOnSinglePage" @current-change="handleUncommentCurrentChange" :current-page.sync="commentCurrentPage"></el-pagination>
           </div>
         </el-tab-pane>
       </el-tabs>
     </el-tab-pane>
+    <el-dialog :visible.sync="showInputReply" title="回复评论" center @close="closeReply">
+      <div>
+        回复[{{replyComment.nickName}}]:{{replyComment.commentContent}}
+      </div>
+      <div style="margin-top:20px">
+        <el-input v-model="replyCommentContent" maxlength="30" show-word-limit></el-input>
+      </div>
+      <div slot="footer" class="dialog-footer">
+        <el-button type="primary" @click="reply">发表</el-button>
+      </div>
+    </el-dialog>
+    <el-dialog :visible.sync="showRefundReason" title="选择退款原因" center @close="closeRefund">
+      <div style="margin-left:100px">
+        请选择取消原因
+        <el-select v-model="cancelReason">
+          <el-option v-for="(cancelReason,index) in cancelList" :key="index" :label="cancelReason.name" :value="cancelReason.index"></el-option>
+        </el-select>
+        <el-button type="primary" @click="applyRefund">确认取消</el-button>
+      </div>
+    </el-dialog>
   </el-tabs>
 </template>
 <script>
   import {mapState} from 'vuex'
-  import {reqModifyUserInfo,reqModifyCommit,reqAddAddress,reqGetAddress,reqSetDefault,reqDeleteAddress,reqModifyAddress,reqGetOrder,reqCancelOrder,reqGetTime,reqPay,reqReceive,reqCreditInfo,reqSysCancelOrder,reqSubmitComment,reqCommentCount,reqCommentProduct,reqModifyPassword,reqLogout} from '../../api'
+  import {reqModifyUserInfo,reqModifyCommit,reqAddAddress,reqGetAddress,reqSetDefault,reqDeleteAddress,reqModifyAddress,reqGetOrder,reqCancelOrder,reqPay,reqReceive,reqCreditInfo,reqSysCancelOrder,reqSubmitComment,reqCommentCount,reqCommentProduct,reqModifyPassword,reqLogout,reqGetUserInfo,reqGetReplyComment,reqGetMemComment,reqCharge,reqExchange,reqReplyComment,reqGetCancelReason,reqApplyRefund,reqGetReplyUnreadCount} from '../../api'
   import axios from 'axios'
   import addressData from '../../assets/citys.json'
   import { Notification } from 'element-ui'
@@ -341,19 +312,6 @@
   const telReg = /^1[3|4|5|6|7|8|9]\d{9}$/
   const specialKey = "[`~!#$^&*()=|{}':;'\\[\\].<>/?~！#￥……&*（）——|{}【】‘；：”“'。，、？]‘'"
   const emReg = /^\w+([-+.']\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*$/
-
-  function InitTime(endtime){
-    var mm,ss = null
-    var time = endtime
-    if(time<=0){
-      return '结束'
-    }else{
-      mm = Math.floor(time / 60);
-      ss = time - mm*60;
-      var str = mm+"分"+ss+"秒";
-      return str;
-    }
-  }
 
   export default {
     data() {
@@ -379,168 +337,127 @@
           detail: ''
         },
         ModifyAddress: {
-          id: '',
-          name: '',
+          addressNo: '',
+          receiver: '',
           telephone: '',
           pcd: [],
           detail: ''
         },
-        activeOrder: 0,
         orderList: [],
-        orderState: ['未付款','待发货','待收货','已完成','已取消'],
-        time: [],
-        timer: null,
         creditList: [],
-        activeComment: '',
+        activeComment: 'replied',
         commentList: [],
         rate: [],
         colors: ['#99A9BF', '#F7BA2A', '#FF9900'],
         commentText: [],
+        productNo: [],
         cindex: '',
         modifyCommentVisible: false,
         modifyRate: null,
         modifyCommentText: '',
         totalComment: 0,
         hideOnSinglePage: false,
-        commentPageSize: 2,
+        commentPageSize: 3,
         currentPassword: '',
         newPassword: '',
-        againNewPassword: ''
+        againNewPassword: '',
+        orderPageSize: 5,
+        totalOrder: 0,
+        hideOrderOnSinglePage: false,
+        currentOrderPage: 1,
+        balance: '',
+        change: '',
+        showInputReply: false,
+        replyComment: '',
+        replyCommentContent: '',
+        showRefundReason: false,
+        cancelList: [],
+        cancelReason: '',
+        applyRefundOrder: '',
+        commentCurrentPage: 1,
+        replyUnreadCount: 0
       }
     },
     computed: {
       ...mapState({
         isLogin: state=>state.Person.isLogin,
-        userId: state=>state.Person.userId,
-        username: state=>state.Person.username,
-        telephone: state=>state.Person.telephone,
-        email: state=>state.Person.email,
-        avatar: state=>state.Person.avatar,
-        unpaidOrder: state=>state.Order.unpaidOrder,
-        unreceiveOrder: state=>state.Order.unreceiveOrder,
-        currentCredit: state=>state.Person.currentCredit
+        user: state=>state.Person.user,
+        unreceiveOrder: state=>state.Order.unreceiveOrder
       }),
       userAvatar: function(){
-        let url = "/api/pictures/" + this.avatar
+        let url = "http://10.104.131.158/" + this.user.image
+        return url
+      },
+      navAvatar: function(){
+        let url = "http://10.104.131.158/new1.png"
         return url
       },
     },
     mounted() {
-      if(!this.isLogin) {
-        this.$router.push('/home')
-        this.$message.warning("请先登录")
-      }
+      reqGetReplyUnreadCount({
+        userId: this.user.memberId
+      }).then((data) => {
+        this.replyUnreadCount = data.data
+        console.log("count",this.replyUnreadCount)
+      })
     },
     filters: {
       numFilter(value) {
-        let realVal = parseFloat(value).toFixed(1)
+        let realVal = parseFloat(value).toFixed(2)
         return realVal
       }
     },
     methods: {
       handleClick(tab, event) {
-        if(tab.name === "order") {
-          if(this.unpaidOrder > 0){
-            this.activeOrder = '0'
-            reqGetOrder(0).then((data) => {
-              let tempOrderList = data
-              reqGetTime().then((timedata) => {
-                this.time = timedata
-                tempOrderList.map((obj,index)=>{
-                  this.$set(obj,"restTime",this.time[index]);
-                })
-                tempOrderList.map((obj,index)=>{
-                  this.$set(obj,"djs",InitTime(this.time[index]));
-                })
-                this.orderList = tempOrderList
-                if(!this.timer) {
-                  this.timer = setInterval(()=> {
-                    for (var key in this.orderList) {
-                      var rightTime = parseInt(this.orderList[key]["restTime"]);
-                      if (rightTime > 0) {
-                        var mm = Math.floor(rightTime/60);
-                        var ss = rightTime - mm*60;
-                      }
-                      if(ss > 0 && ss <= 59) {
-                        ss--
-                        this.orderList[key]["restTime"]--
-                        this.orderList[key]["djs"] = mm + "分" + ss + "秒";
-                      }
-                      if(ss === 0 && mm > 0 && mm <= 1) {
-                        mm--
-                        ss = 59
-                        this.orderList[key]["restTime"]--
-                        this.orderList[key]["djs"] = mm + "分" + ss + "秒";
-                      } 
-                      if(ss <= 0 && mm <= 0) {
-                        reqGetOrder(4).then((data) => {
-                          this.orderList = data
-                          this.activeOrder = 4
-                        })
-                      }
-                    }
-                  }, 1000)
-                }
-              })
-            }).catch(() => {
-              this.$message.error("获取订单失败")
-            })
-          } else {
-            this.activeOrder = 2;
-            reqGetOrder(2).then((data) => {
-              this.orderList = data
-            }).catch(() => {
-              this.$message.error("获取订单失败")
-            })
+        this.activeComment = 'replied'
+        reqGetFile({
+          memberId: this.user.memberId,
+          orderStatus: 0,
+          page: 1,
+          rows: this.orderPageSize
+        }).then((data) => {
+          this.totalOrder = data.data.total
+          if(this.totalOrder <= this.orderPageSize) {
+            this.hideOrderOnSinglePage = true
           }
-        }
+          this.orderList = data.data.rows
+        }).catch(() => {
+            this.$message.error("获取订单失败")
+        })
         if(tab.name === "credit") {
-          reqCreditInfo().then((data) => {
-            this.creditList = data
+          reqCreditInfo(this.user.memberId).then((data) => {
+            console.log("credit",data.data)
+            this.creditList = data.data
           })
         }
         if(tab.name === "address") {
-          reqGetAddress().then((data) => {
-            this.allAddress = data
+          reqGetAddress(this.user.memberId).then((data) => {
+            this.allAddress = data.data
+            console.log("address",data.data)
           }).catch(() => {
             this.$message.error("获取地址失败")
           })
         }
         if(tab.name === "comment") {
-          reqCommentCount(this.userId,0).then((data) => {
-            if(data > 0) {
-              this.totalComment = data
-              if(this.totalComment <= 2) {
+          reqGetReplyUnreadCount({
+            userId: this.user.memberId
+          }).then((data) => {
+            this.replyUnreadCount = data.data
+            console.log("count",this.replyUnreadCount)
+            reqGetReplyComment({
+              userId: this.user.memberId,
+              page: 1,
+              rows: this.commentPageSize
+            }).then((data) => {
+              console.log("comment",data.data)
+              this.commentList = data.data.rows
+              this.totalComment = data.data.total
+              if(this.totalComment <= this.commentPageSize){
                 this.hideOnSinglePage = true
               }
-              reqCommentProduct(this.userId,0,1,this.commentPageSize).then((data) => {
-                this.activeComment = '0'
-                this.commentList = data
-                for(var i = 0;i < data.length;i++) {
-                  this.rate[i] = null
-                  this.commentText[i] = ''
-                }
-              }).catch(() => {
-                this.$message.error("获取未评价列表失败")
-              })
-            } else {
-              reqCommentCount(this.userId,1).then((data) => {
-                this.totalComment = data
-                if(this.totalComment <= 2) {
-                  this.hideOnSinglePage = true
-                }
-                reqCommentProduct(this.userId,1,1,this.commentPageSize).then((data) => {
-                  this.activeComment = '1'
-                  this.commentList = data
-                }).catch(() => {
-                  this.$message.error("获取已评价列表失败")
-                })
-              }).catch(() => {
-                this.$message.error("获取已评价总数量失败")
-              })
-            }
-          }).catch(() => {
-            this.$message.error("获取未评价总数量失败")
+            }).catch(() => {
+              this.$message.error("获取评价列表失败")
+            })
           })
         }
       },
@@ -548,45 +465,54 @@
         this.$forceUpdate()
       },
       picUrl(picName) {
-        return "/api/pictures/" + picName
-      },
-      hasIllegalChar() {
-        for (var i = 0; i < this.Modify.username.length; i++) {
-          if (specialKey.indexOf(this.Modify.username.substr(i, 1)) != -1) {
-            return true 
-          }
-        }
-        return false
+        return "http://10.104.131.158/" + picName
       },
       modifyUserInfo() {
-        if(this.hasIllegalChar()) {
-          this.$message.warning("用户昵称中包含非法字符")
-        } else {
-          if((this.Modify.username.length < 7 || this.Modify.username > 17) && this.Modify.username != '') {
-            this.$message.warning("用户昵称的长度为7~17")
-          } else {
-            if(telReg.test(this.Modify.telephone) || this.Modify.telephone === '') {
-              if(emReg.test(this.Modify.email) || this.Modify.email === '') {
-                reqModifyUserInfo({
-                  userName: this.Modify.username,
-                  telephone: this.Modify.telephone,
-                  email: this.Modify.email
-                }).then((data) => {
-                  this.Modify.username = ''
-                  this.Modify.telephone = ''
-                  this.Modify.email = ''
-                  this.$store.commit('Person/setUsername', data.userName)
-                  this.$store.commit('Person/setTelephone', data.telephone)
-                  this.$store.commit('Person/setEmail', data.email)
-                }).catch(() => {
-                  this.$message.error("登录失败，请检查网络连接")
-                })
+        if(this.Modify.username != '' || this.Modify.telephone != '' || this.Modify.email != '') {
+          if(telReg.test(this.Modify.telephone) || this.Modify.telephone === '') {
+            if(emReg.test(this.Modify.email) || this.Modify.email === '') {
+              if(this.Modify.username === this.user.nickname) {
+                this.Modify.username = ''
+                this.$message.info("更改的用户昵称与现在的用户昵称相同")
               } else {
-                this.$message.warning("请输入正确的邮箱地址")
+                if(this.Modify.telephone === this.user.phoneNum) {
+                  this.Modify.telephone = ''
+                  this.$message.info("更改的手机号码与现在的手机号码相同")
+                } else {
+                  if(this.Modify.email === this.user.email) {
+                    this.Modify.email = ''
+                    this.$message.info("更改的邮箱地址与现在的邮箱地址相同")
+                  } else {
+                    reqModifyUserInfo({
+                      memberId: this.user.memberId,
+                      nickname: this.Modify.username,
+                      phoneNum: this.Modify.telephone,
+                      email: this.Modify.email
+                    }).then((data) => {
+                      if(data.data > 0) {
+                        this.$message.error("个人信息修改成功")
+                        this.Modify.username = ''
+                        this.Modify.telephone = ''
+                        this.Modify.email = ''
+                        reqGetUserInfo(this.user.memberId).then((data) => {
+                          this.$store.commit('Person/login',data.data)
+                        })
+                      } else {
+                        this.$message.error("个人信息修改失败")
+                      }
+                    }).catch(() => {
+                      this.$message.error("登录失败，请检查网络连接")
+                    })
+                  }
+                }
               }
             } else {
-              this.$message.warning("请输入正确的手机号码")
+              this.Modify.email = ''
+              this.$message.warning("请输入正确的邮箱地址")
             }
+          } else {
+            this.Modify.telephone = ''
+            this.$message.warning("请输入正确的手机号码")
           }
         }
       },
@@ -636,28 +562,50 @@
         })
       },
       setDefault(addressId) {
-        reqSetDefault(addressId).then((data) => {
-          this.allAddress = data
+        reqSetDefault({
+          memberId: this.user.memberId,
+          addressNo: addressId
+        }).then((data) => {
+          if(data.success) {
+            this.$message.success("设置默认地址成功!")
+            reqGetAddress(this.user.memberId).then((data) => {
+              this.allAddress = data.data
+              console.log("address",data.data)
+            }).catch(() => {
+              this.$message.error("获取地址失败")
+            })
+          } else {
+            this.$message.error("设置默认地址失败!")
+          }
         }).catch(() => {
           this.$message.error("修改地址失败")
         })
       },
-      deleteAddress(addressId) {
-        reqDeleteAddress(addressId).then((data) => {
-          this.allAddress = data
+      deleteAddress(addressNo) {
+        reqDeleteAddress(addressNo).then((data) => {
+          reqGetAddress(this.user.memberId).then((data) => {
+            this.allAddress = data.data
+          }).catch(() => {
+            this.$message.error("获取地址失败")
+          })
         }).catch(() => {
           this.$message.error("删除地址失败")
         })
       },
-      createAddress(modelName) {
+      createAddress() {
+        var isDefault = 0
+        if(this.checked) {
+          isDefault = 1
+        }
         reqAddAddress({
+          memberId: this.user.memberId,
           receiver: this.Address.receiver,
-          telephone: this.Address.telephone,
+          phoneNum: this.Address.telephone,
           province: this.Address.pcd[0],
           city: this.Address.pcd[1],
-          district: this.Address.pcd[2],
-          detail: this.Address.detail,
-          isDefault: this.checked
+          area: this.Address.pcd[2],
+          detailAddress: this.Address.detail,
+          defaultAddress: isDefault
         }).then(() => {
           this.addAddress = false
           this.Address.receiver = ''
@@ -665,8 +613,8 @@
           this.Address.pcd = []
           this.Address.detail = ''
           this.checked = false
-          reqGetAddress().then((data) => {
-            this.allAddress = data
+          reqGetAddress(this.user.memberId).then((data) => {
+            this.allAddress = data.data
           }).catch(() => {
             this.$message.error("获取地址失败")
           })
@@ -693,122 +641,98 @@
       modify(data) {
         this.changeAddress = true
         this.ModifyAddress.receiver = data.receiver
-        this.ModifyAddress.id = data.addressId
-        this.ModifyAddress.telephone = data.telephone
-        this.ModifyAddress.detail = data.detail
+        this.ModifyAddress.addressNo = data.addressNo
+        this.ModifyAddress.telephone = data.phoneNum
       },
-      modifyAddress(modelName) {
+      modifyAddress() {
         reqModifyAddress({
-          addressId: this.ModifyAddress.id,
+          addressNo: this.ModifyAddress.addressNo,
           receiver: this.ModifyAddress.receiver,
-          telephone: this.ModifyAddress.telephone,
+          phoneNum: this.ModifyAddress.telephone,
           province: this.ModifyAddress.pcd[0],
           city: this.ModifyAddress.pcd[1],
-          district: this.ModifyAddress.pcd[2],
-          detail: this.ModifyAddress.detail
-        }).then(() => {
-          this.changeAddress = false
-          this.ModifyAddress.pcd = []
-          reqGetAddress().then((data) => {
-            this.allAddress = data
-          }).catch(() => {
-            this.$message.error("获取地址失败")
-          })
+          area: this.ModifyAddress.pcd[2],
+          detailAddress: this.ModifyAddress.detail
+        }).then((data) => {
+          if(data.success) {
+            this.$message.success("修改地址成功")
+            this.changeAddress = false
+            this.ModifyAddress.pcd = []
+            this.ModifyAddress.detail = ''
+            reqGetAddress(this.user.memberId).then((data) => {
+              this.allAddress = data.data
+            }).catch(() => {
+              this.$message.error("获取地址失败")
+            })
+          } else {
+            this.$message.warning(data.statusInfo)
+          }
         }).catch(() => {
-          this.$message.error("添加地址失败")
+          this.$message.error("修改地址失败")
         })
       },
       onModifyClose() {
         this.changeAddress = false
         this.ModifyAddress.pcd = []
+        this.ModifyAddress.detail = ''
       },
       onModifyCancel() {
         this.changeAddress = false
         this.ModifyAddress.pcd = []
+        this.ModifyAddress.detail = ''
       },
       checkOrder(tab,event) {
-        if(tab.name === 0) {
-          reqGetOrder(0).then((data) => {
-            let tempOrderList = data
-            reqGetTime().then((timedata) => {
-              this.time = timedata
-              tempOrderList.map((obj,index)=>{
-                this.$set(obj,"restTime",this.time[index]);
-              })
-              tempOrderList.map((obj,index)=>{
-                this.$set(obj,"djs",InitTime(this.time[index]));
-              })
-              this.orderList = tempOrderList
-              if(!this.timer) {
-                this.timer = setInterval(()=> {
-                  for (var key in this.orderList) {
-                    var rightTime = parseInt(this.orderList[key]["restTime"]);
-                    if (rightTime > 0) {
-                      var mm = Math.floor(rightTime/60);
-                      var ss = rightTime - mm*60;
-                    }
-                    if(ss > 0 && ss <= 59) {
-                      ss--
-                      this.orderList[key]["restTime"]--
-                      this.orderList[key]["djs"] = mm + "分" + ss + "秒";
-                    }
-                    if(ss === 0 && mm > 0 && mm <= 5) {
-                      mm--
-                      ss = 59
-                      this.orderList[key]["restTime"]--
-                      this.orderList[key]["djs"] = mm + "分" + ss + "秒";
-                    } 
-                    if(ss <= 0 && mm <= 0) {
-                      clearInterval(this.timer);
-                      this.timer = null;
-                      mm = 0
-                      ss = 0
-                    }
-                  }
-                }, 1000)
-              }
-            })
-          }).catch(() => {
-            this.$message.error("获取订单失败")
-          })
-        } else {
-          reqGetOrder(tab.name).then((data) => {
-            this.orderList = data
-          }).catch(() => {
-            this.$message.error("获取订单失败")
-          })
-        }
-      },
-      checkComment(tab,event) {
-        reqCommentCount(this.userId,tab.name).then((data) => {
-          this.totalComment = data
-          if(this.totalComment <= 2) {
-            this.hideOnSinglePage = true
-          }
-          if(tab.name === '0') {
-            reqCommentProduct(this.userId,0,1,this.commentPageSize).then((data) => {
-              this.activeComment = '0'
-              this.commentList = data
-              for(var i = 0;i < data.length;i++) {
-                this.rate[i] = null
-                this.commentText[i] = ''
-              }
-            }).catch(() => {
-              this.$message.error("获取未评价列表失败")
-            })
-          } else {
-            reqCommentProduct(this.userId,1,1,this.commentPageSize).then((data) => {
-              this.activeComment = '1'
-              this.commentList = data
-              this.modifyRate = null
-              this.modifyCommentText = ''
-            }).catch(() => {
-              this.$message.error("获取未评价列表失败")
-            })
+        this.activeOrder = tab.name
+        this.currentOrderPage = 1
+        reqGetOrder({
+          memberId: this.user.memberId,
+          orderStatus: tab.name,
+          page: 1,
+          rows: this.orderPageSize
+        }).then((data) => {
+          if(data.success) {
+            this.totalOrder = data.data.total
+            if(this.totalOrder <= this.orderPageSize) {
+              this.hideOrderOnSinglePage = true
+            }
+            this.orderList = data.data.rows 
           }
         }).catch(() => {
-          this.$message.error("获取评价数量失败")
+          this.$message.error("获取订单失败")
         })
+      },
+      checkComment(tab,event) {
+          if(tab.name === 'replied') {
+            reqGetReplyComment({
+              userId: this.user.memberId,
+              page: 1,
+              rows: this.commentPageSize
+            }).then((data) => {
+              console.log("comment",data.data)
+              this.commentList = data.data.rows
+              this.totalComment = data.data.total
+              if(this.totalComment <= this.commentPageSize){
+                this.hideOnSinglePage = true
+              }
+            }).catch(() => {
+              this.$message.error("获取评价列表失败")
+            })
+          } else {
+            reqGetMemComment({
+              userId: this.user.memberId,
+              page: 1,
+              rows: this.commentPageSize
+            }).then((data) => {
+              console.log("comment",data.data)
+              this.commentList = data.data.rows
+              this.totalComment = data.data.total
+              if(this.totalComment <= this.commentPageSize){
+                this.hideOnSinglePage = true
+              }
+            }).catch(() => {
+              this.$message.error("获取评价列表失败")
+            })
+          }
       },
       messageUnpaid() {
         return '您有' + this.unpaidOrder +'个未付款的订单！请到个人中心的订单中心继续付款!'
@@ -816,99 +740,148 @@
       messageUnreceive() {
         return this.unreceiveOrder +'个未收货的订单！请到个人中心的订单中心确认收货!'
       },
-      cancelOrder(orderId) {
-        reqCancelOrder(orderId).then(() => {
-          reqGetOrder(4).then((data) => {
-            this.activeOrder = 4
-            this.$store.commit('Order/minus')
-            this.orderList = data
-            Notification.closeAll()
-            if(this.unpaidOrder > 0) {
-              this.$notify({
-                title: '未付款!',
-                dangerouslyUseHTMLString: true,
-                message: this.messageUnpaid(),
-                type:'warning',
-                showClose: false,
-                duration: 0,
-                position: 'bottom-left'
-              });
-            }
-          }).catch(() => {
-            this.$message.error("获取订单失败")
-          })
-        }).catch()
-      },
-      pay(orderId) {
-        reqPay(orderId).then((data) => {
-          reqGetOrder(1).then((data) => {
-            this.activeOrder = 1
-            this.$store.commit('Order/minus')
-            this.orderList = data
-            Notification.closeAll()
-            if(this.unpaidOrder > 0) {
-              this.$notify({
-                title: '未付款!',
-                dangerouslyUseHTMLString: true,
-                message: this.messageUnpaid(),
-                type:'warning',
-                showClose: false,
-                duration: 0,
-                position: 'bottom-left'
-              });
-            }
-          })
-        }).catch(() => {
-
-        })
-      },
-      receive(orderId) {
-        reqReceive(orderId).then(() => {
-          reqGetOrder(3).then((data) => {
-            this.activeOrder = 3
-            this.$store.commit('Order/unreceiveMinus')
-            this.orderList = data
-            Notification.closeAll()
-            if(this.unreceiveOrder > 0) {
-              this.$notify({
-                title: '未收货!',
-                dangerouslyUseHTMLString: true,
-                message: this.messageUnreceive(),
-                type:'warning',
-                showClose: false,
-                duration: 0,
-                position: 'bottom-left'
-              });
-            }
-          })
-        })
-      },
-      submitComment(commentId,index) {
-        reqSubmitComment({
-          commentId: commentId,
-          rate: this.rate[index],
-          comment: this.commentText[index]
+      cancelOrder(orderNo) {
+        reqCancelOrder({
+          memberId: this.user.memberId,
+          orderNo: orderNo
         }).then((data) => {
-          this.$message.success(data)
-          this.rate.splice(index,1)
-          this.commentText.splice(index,1)
-          reqCommentCount(this.userId,1).then((data) => {
-            this.totalComment = data
-            if(this.totalComment <= 2) {
-              this.hideOnSinglePage = true
-            }
-            reqCommentProduct(this.userId,1,1,this.commentPageSize).then((data) => {
-              this.activeComment = '1'
-              this.commentList = data
+          if(data.success) {
+            this.$message.success(data.statusInfo)
+            reqGetOrder({
+              memberId: this.user.memberId,
+              orderStatus: 5,
+              page: 1,
+              rows: this.orderPageSize
+            }).then((data) => {
+              this.activeOrder = 5
+              this.$store.commit('Order/minus')
+              this.totalOrder = data.data.total
+              if(this.totalOrder <= this.orderPageSize) {
+                this.hideOrderOnSinglePage = true
+              }
+              this.orderList = data.data.rows
+              Notification.closeAll()
+              if(this.unpaidOrder > 0) {
+                this.$notify({
+                  title: '未付款!',
+                  dangerouslyUseHTMLString: true,
+                  message: this.messageUnpaid(),
+                  type:'warning',
+                  showClose: false,
+                  duration: 0,
+                  position: 'bottom-left'
+                });
+              }
+            })
+          }
+        })
+      },
+      pay(orderNo) {
+        reqPay({
+          memberId: this.user.memberId,
+          orderNo: orderNo
+        }).then((data) => {
+          if(data.success) {
+            this.$message.success(data.statusInfo)
+            reqGetOrder({
+              memberId: this.user.memberId,
+              orderStatus: 1,
+              page: 1,
+              rows: this.orderPageSize
+            }).then((data) => {
+              this.activeOrder = 1
+              this.$store.commit('Order/minus')
+              this.totalOrder = data.data.total
+              if(this.totalOrder <= this.orderPageSize) {
+                this.hideOrderOnSinglePage = true
+              }
+              this.orderList = data.data.rows
+              Notification.closeAll()
+              if(this.unpaidOrder > 0) {
+                this.$notify({
+                  title: '未付款!',
+                  dangerouslyUseHTMLString: true,
+                  message: this.messageUnpaid(),
+                  type:'warning',
+                  showClose: false,
+                  duration: 0,
+                  position: 'bottom-left'
+                });
+              }
+            })
+          } else {
+            this.$message.warning(data.statusInfo)
+          }
+        })
+      },
+      receive(orderNo) {
+        reqReceive({
+          memberId: this.user.memberId,
+          orderNo: orderNo
+        }).then((data) => {
+          if(data.success) {
+            this.$message.success(data.statusInfo)
+            this.activeOrder = 3
+            reqGetOrder({
+              memberId: this.user.memberId,
+              orderStatus: 3,
+              page: 1,
+              rows: this.orderPageSize
+            }).then((data) => {
+              if(data.success) {
+                this.totalOrder = data.data.total
+                if(this.totalOrder <= this.orderPageSize) {
+                  this.hideOrderOnSinglePage = true
+                }
+                this.orderList = data.data.rows 
+              }
             }).catch(() => {
-              this.$message.error("获取已评价列表失败")
+              this.$message.error("获取订单失败")
+            })
+          } else {
+            this.$message.error(data.statusInfo)
+          }
+        })
+      },
+      submitComment(order) {
+        var flag = 0;
+        console.log(order.orderDetailDTOS)
+        for(var i = 0;i < order.orderDetailDTOS.length;i++) {
+          if(order.orderDetailDTOS[i].commentStar === null || order.orderDetailDTOS[i].commentContent === null) {
+            flag = 1
+            break
+          }
+        }
+        if(flag === 1) {
+          this.$message.warning("请评论订单内的全部商品（评分以及评价）！！！")
+        } else {
+          reqSubmitComment({
+            memberId: this.user.memberId,
+            orderNo: order.orderNo,
+            orderDetailDTOS: order.orderDetailDTOS
+          }).then((data) => {
+            this.$message.success(data.statusInfo)
+            this.activeOrder = 4
+            reqGetOrder({
+              memberId: this.user.memberId,
+              orderStatus: 4,
+              page: 1,
+              rows: this.orderPageSize
+            }).then((data) => {
+              if(data.success) {
+                this.totalOrder = data.data.total
+                if(this.totalOrder <= this.orderPageSize) {
+                  this.hideOrderOnSinglePage = true
+                }
+                this.orderList = data.data.rows 
+              }
+            }).catch(() => {
+              this.$message.error("获取订单失败")
             })
           }).catch(() => {
-            this.$message.error("获取已评价数量失败")
+            this.$message.error("提交评价失败!")
           })
-        }).catch(() => {
-          this.$message.error("提交评价失败!")
-        })
+        }
       },
       ModifyComment(comment,index) {
         this.modifyCommentVisible = true
@@ -944,19 +917,35 @@
         })
       },
       handleUncommentCurrentChange(val) {
-        reqCommentProduct(this.userId,0,val,this.commentPageSize).then((data) => {
-          this.activeComment = '0'
-          this.commentList = data
-        }).catch(() => {
-          this.$message.error("获取当前页未评价商品失败")
-        })
+        reqGetMemComment({
+          userId: this.user.memberId,
+          page: val,
+          rows: this.commentPageSize
+        }).then((data) => {
+            console.log("comment",data.data)
+            this.commentList = data.data.rows
+            this.totalComment = data.data.total
+            if(this.totalComment <= this.commentPageSize){
+              this.hideOnSinglePage = true
+            }
+          }).catch(() => {
+            this.$message.error("获取评价列表失败")
+          })
       },
       handleCommentCurrentChange(val) {
-        reqCommentProduct(this.userId,1,val,this.commentPageSize).then((data) => {
-          this.activeComment = '1'
-          this.commentList = data
+        reqGetReplyComment({
+          userId: this.user.memberId,
+          page: val,
+          rows: this.commentPageSize
+        }).then((data) => {
+          console.log("comment",data.data)
+          this.commentList = data.data.rows
+          this.totalComment = data.data.total
+          if(this.totalComment <= this.commentPageSize){
+            this.hideOnSinglePage = true
+          }
         }).catch(() => {
-          this.$message.error("获取当前页已评价商品失败")
+          this.$message.error("获取评价列表失败")
         })
       },
       modifyPassword() {
@@ -966,17 +955,16 @@
               if(this.againNewPassword != this.newPassword) {
                 this.$message.warning("两次输入的新密码不同")
               } else {
-                reqModifyPassword(this.currentPassword,this.newPassword).then((data) => {
-                  if(data != 'OK') {
-                    this.$message.info(data)
-                  } else {
-                    reqLogout().then((data) => {
-                      Notification.closeAll()
-                      this.$store.commit('Person/changeLogin')
-                      this.$store.commit('ShopCart/clear')
-                      this.$router.push('/home')
-                    })
-                  }
+                reqModifyPassword({
+                  memberId: this.user.memberId,
+                  password: this.currentPassword,
+                  newPassword: this.newPassword
+                }).then(() => {
+                  this.$message.success("修改密码成功!")
+                  Notification.closeAll()
+                  this.$store.commit('Person/logout')
+                  this.$store.commit('ShopCart/clear')
+                  this.$router.push('/home')
                 })
               }
             } else {
@@ -988,6 +976,140 @@
         } else {
           this.$message.warning("请填写原密码")
         }
+      },
+      handleOrderCurrentChange(val) {
+        reqGetOrder({
+          memberId: this.user.memberId,
+          orderStatus: this.activeOrder,
+          page: val,
+          rows: this.orderPageSize
+        }).then((data) => {
+          if(data.success) {
+            this.totalOrder = data.data.total
+            if(this.totalOrder <= this.orderPageSize) {
+              this.hideOrderOnSinglePage = true
+            }
+            this.orderList = data.data.rows 
+          }
+        }).catch(() => {
+          this.$message.error("获取订单失败")
+        })
+      },
+      expandChange(row, expandedRows) {
+        console.log("row",row)
+        console.log("expandedRows",expandedRows)
+      },
+      charge() {
+        if(this.balance > 20000) {
+          this.$message.warning("一次充值的限额为20000！")
+        } else {
+          reqCharge({
+            memberId: this.user.memberId,
+            balance: this.balance
+          }).then((data) => {
+            this.$message.success(data.statusInfo)
+            reqGetUserInfo(this.user.memberId).then((data) => {
+              this.$store.commit('Person/setUser',data.data)
+            })
+          })
+        }
+      },
+      exchange() {
+        if(this.change > this.user.points) {
+          this.$message.warning("兑换的积分不能大于当前总积分!")
+        } else {
+          reqExchange({
+            memberId: this.user.memberId,
+            change: this.change
+          }).then((data) => {
+            this.$message.success(data.statusInfo)
+            reqGetUserInfo(this.user.memberId).then((data) => {
+              this.$store.commit('Person/setUser',data.data)
+            })
+            reqCreditInfo(this.user.memberId).then((data) => {
+              console.log("credit",data.data)
+              this.creditList = data.data
+            })
+          })
+        }
+      },
+      openReply(comment) {
+        this.showInputReply = true
+        this.replyComment = comment
+        console.log("comment",comment)
+      },
+      reply() {
+        reqReplyComment({
+          userId: this.user.memberId,
+          commentContent: this.replyCommentContent,
+          parentId: this.replyComment.id,
+          replyId: this.replyComment.id
+        }).then((data) => {
+          this.$message.success(data.statusInfo)
+          this.showInputReply = false
+          this.replyCommentContent = ''
+          reqProductComment({
+            productNo: this.clickProduct.productNo,
+            page: 1,
+            rows: this.commentPageSize
+          }).then((data) => {
+            this.commentList = data.data.rows
+            this.totalComment = data.data.total
+            if(this.totalComment <= this.commentPageSize){
+              this.hideOnSinglePage = true
+            }
+            this.isShowReply = -1
+          }).catch(() => {
+            this.$message.error("获取评价列表失败")
+          })
+        })
+      },
+      closeReply() {
+        this.replyCommentContent = ''
+      },
+      ShowRefundReason(order) {
+        this.showRefundReason = true
+        this.applyRefundOrder = order
+        reqGetCancelReason().then((data) => {
+          this.cancelList = data.data
+        })
+      },
+      applyRefund() {
+        if(this.cancelReason != '') {
+          reqApplyRefund({
+            memberId: this.user.memberId,
+            orderNo: this.applyRefundOrder.orderNo,
+            cancelNo: this.cancelReason
+          }).then((data) => {
+            if(data.success) {
+              this.activeOrder = 6;
+              this.showRefundReason = false
+              this.cancelReason = ''
+              reqGetOrder({
+                memberId: this.user.memberId,
+                orderStatus: 6,
+                page: 1,
+                rows: this.orderPageSize
+              }).then((data) => {
+                if(data.success) {
+                  console.log("order",data.data)
+                  this.totalOrder = data.data.total
+                  if(this.totalOrder <= this.orderPageSize) {
+                    this.hideOrderOnSinglePage = true
+                  }
+                  this.orderList = data.data.rows 
+                }
+              }).catch(() => {
+                this.$message.error("获取订单失败")
+              })
+            }
+          })
+        } else {
+          this.$message.warning("请选择退款原因!")
+        }
+      },
+      closeRefund() {
+        this.cancelReason = ''
       }
     }
   }
@@ -1037,5 +1159,11 @@
     margin-right: 0;
     margin-bottom: 0;
     width: 50%;
+  }
+  .message {
+    width: 500px;
+    color: #00F;
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, .12);
   }
 </style>

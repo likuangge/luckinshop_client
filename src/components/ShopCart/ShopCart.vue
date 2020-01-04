@@ -11,7 +11,7 @@
                             <div style="margin-top:16px;margin-left:5px">
                                 <el-checkbox-group v-model="orderList" @change="handleCheckedOrderChange">
                                     <div v-for="(product, index) in products" :key="index" style="margin-bottom:138px">
-                                        <el-checkbox :label="product.productId" :disabled="product.stock === 0">
+                                        <el-checkbox :label="product.productNo" :disabled="product.stock === 0">
                                             <el-tooltip effect="dark" :content=product.stock placement="right-end">
                                                 <el-tag v-if="product.stock > 0" type="info" size="mini">有库存</el-tag>
                                                 <el-tag v-else type="warning" size="mini">无库存</el-tag>
@@ -25,7 +25,7 @@
                             <div v-for="(product, index) in products" :key="index">
                                 <el-row>
                                     <el-col :span="7">
-                                        <el-image :src="picUrl(product.displayImage)"></el-image>
+                                        <el-image :src="picUrl(product.displayImage)" style="width:100px;height:125px"></el-image>
                                     </el-col>
                                     <el-col :span="13">
                                         <el-container>
@@ -35,21 +35,21 @@
                                             </el-main>
                                             <el-footer>
                                                 <div>
-                                                    <el-button icon="el-icon-plus" @click="add(product.count,product.stock,index,product.productId)" size="mini"></el-button>
-                                                    {{product.count}}
-                                                    <el-button icon="el-icon-minus" @click="substract(index,product.productId)" size="mini" :disabled="product.count === 1"></el-button>
+                                                    <el-button icon="el-icon-plus" @click="add(product.quantity,product.stock,index,product.productNo)" size="mini"></el-button>
+                                                    {{product.quantity}}
+                                                    <el-button icon="el-icon-minus" @click="substract(index,product.productNo)" size="mini" :disabled="product.quantity === 1"></el-button>
                                                     </div>
                                             </el-footer>
                                         </el-container>
                                     </el-col>
                                     <el-col :span="4">
                                         <div class="money">
-                                            ￥{{product.money | numFilter}}
+                                            ￥{{product.quantity * product.price | numFilter}}
                                         </div>
                                     </el-col>
                                 </el-row>
                                 <div style="margin-left:320px">
-                                    <i class="el-icon-delete" style="cursor:pointer" @click="deleteProduct(product.productId,index)"></i>
+                                    <i class="el-icon-delete" style="cursor:pointer" @click="deleteProduct(product.productNo,index)"></i>
                                 </div>
                             </div>
                         </el-main>
@@ -90,12 +90,9 @@
             </div>
         </transition>
         <el-dialog title="订单确认" :visible.sync="orderVisible" :before-close=onClose>
-            <div>
-            订单编号：{{this.order.orderId}}
-            </div>
             <el-row>
                 <el-col :span="12">
-                    <div v-for="(product, index) in order.orderProducts" :key="index">
+                    <div v-for="(product, index) in order.shopCartDTOS" :key="index">
                         <el-row>
                             <el-col :span="10">
                                 <el-image :src="picUrl(product.displayImage)"></el-image>
@@ -104,8 +101,9 @@
                                 <div>
                                     <div class="ordertype">{{product.typeName}}</div>
                                     <div class="ordername">{{product.productName}}</div>
+                                    <div class="orderCondition">{{product.activityContent}}</div>
                                     <div class="ordermoney">
-                                        共{{product.count}}件,合计{{product.money | numFilter}}元
+                                        共{{product.quantity}}件,合计{{product.quantity*product.price | numFilter}}元
                                     </div>
                                 </div>
                             </el-col>
@@ -120,63 +118,61 @@
                         <div v-if="!addressVisible">
                             <div>
                                 <el-radio-group v-model="selectAddress">
-                                    <div v-show="defaultAddress != ''">
-                                        <el-radio :label=defaultAddress.addressId>
+                                    <div v-if="defaultAddress != null">
+                                        <el-radio :label=defaultAddress.addressNo>
                                             <span>默认地址</span>
                                             <div>
                                                 <span>{{defaultAddress.receiver}}</span><span></span>
-                                                <span>{{defaultAddress.telephone}}</span>
+                                                <span>{{defaultAddress.phoneNum}}</span>
                                             </div>
                                             <div>
-                                                <span>{{defaultAddress.province}}</span><span>{{defaultAddress.city}}</span><span>{{defaultAddress.district}}</span>
+                                                <span>{{defaultAddress.info}}</span>
                                             </div>
-                                            <div>{{defaultAddress.detail}}</div>
                                         </el-radio>
                                     </div>
-                                    <div v-for="(address,index) in otherAddress" :key="index">
-                                        <el-radio :label=address.addressId>
+                                    <div v-for="(address,index) in otherAddress" :key="index" style="margin-top:10px">
+                                        <el-radio :label=address.addressNo>
                                             <span>{{address.receiver}}</span><span></span>
-                                            <span>{{address.telephone}}</span>
+                                            <span>{{address.phoneNum}}</span>
                                             <div>
-                                                <span>{{address.province}}</span><span>{{address.city}}</span><span>{{address.district}}</span>
+                                                <span>{{address.info}}</span>
                                             </div>
-                                            <div>{{address.detail}}</div>
                                         </el-radio>
                                     </div>
                                 </el-radio-group>
                             </div>
                             <el-link type="primary" icon="el-icon-plus" @click="addAddress">添加地址</el-link>
                             <div class="pay">
-                                请选择支付方式
+                                请选择优惠券
                             </div>
                             <div>
                                 <div>
-                                    <el-radio v-model="paymethod" label="0" :disabled="currentCredit < 1000">
-                                        当前积分:{{currentCredit}}
-                                        <span v-show="currentCredit < 1000">(不足1000积分,无法使用优惠券)</span>
-                                        <div v-show="currentCredit >= 1000">(当前等级1000积分可兑换{{benefit}}元)</div>
-                                        <div v-show="currentCredit >= 1000">
-                                            请选择使用优惠券的数量:
-                                            <el-select v-model="benefitCount" style="width:75px">
-                                                <el-option v-for="(number,index) in benefits" :key="index" :label="number" :value="number"></el-option>
+                                    <el-radio v-model="paymethod" label="0" :disabled="couponList.length === 0">
+                                        请选择使用的优惠券
+                                        <div>
+                                            <el-select v-model="coupon" :disabled="paymethod === '1'">
+                                                <el-option v-for="(coupon,index) in couponList" :key="index" :label="showCoupon(coupon)" :value="coupon.membersNo"></el-option>
                                             </el-select>
                                         </div>
                                     </el-radio>
                                 </div>
                                 <div>
-                                    <el-radio v-model="paymethod" label="1">不使用优惠券</el-radio>
+                                    <el-radio v-model="paymethod" label="1" @change="notUseCoupon()">不使用优惠券</el-radio>
                                 </div>
                             </div>
+                            <div class="orderFull">
+                                {{order.campaignsInfo}}
+                            </div>
                             <div>
-                                <div class="ordertotalmoney" v-if="paymethod === '0'">
-                                    共需<span style="text-decoration:line-through;margin-left:5px">{{order.totalMoney | numFilter}}</span><span style="margin-left:5px">{{order.totalMoney - benefit * benefitCount | numFilter}}</span>元
+                                <div class="ordertotalmoney" v-if="coupon != ''">
+                                    共需<span style="text-decoration:line-through;margin-left:5px">{{order.totalMoney - order.fullReduction | numFilter}}</span><span style="margin-left:5px">{{order.totalMoney - order.fullReduction - getDiscount(coupon) | numFilter}}</span>元
                                 </div>
                                 <div class="ordertotalmoney" v-else>
-                                    共需{{order.totalMoney | numFilter}}元
+                                    共需{{order.totalMoney - order.fullReduction | numFilter}}元
                                 </div>
                             </div>
                             <div>
-                                <el-button type="success" @click="pay" style="margin-left:200px">立即付款</el-button>
+                                <el-button type="success" @click="pay" style="margin-left:200px">提交订单</el-button>
                             </div>
                         </div>
                         <el-form :model="Address" v-else>
@@ -187,7 +183,7 @@
                                 <el-input v-model="Address.telephone"></el-input>
                             </el-form-item>
                             <el-form-item label="收获地址">
-                                <el-cascader v-model="Address.pcd" :options="options" placeholder="请选择省\市\区" style="width:460px" clearable></el-cascader>
+                                <el-cascader v-model="Address.pcd" :options="options" placeholder="请选择省\市\区" clearable></el-cascader>
                             </el-form-item>
                             <el-form-item label="">
                                 <el-input type="textarea" v-model="Address.detail" placeholder="详细地址"></el-input>
@@ -196,7 +192,7 @@
                                 <el-checkbox v-model="checked">设为默认地址</el-checkbox>
                             </el-form-item>
                             <el-form-item>
-                                <el-button type="primary" @click="createAddress('Address')">立即创建</el-button>
+                                <el-button type="primary" @click="createAddress()">立即创建</el-button>
                                 <el-button @click="onCancel">取消</el-button>
                             </el-form-item>
                         </el-form>
@@ -218,7 +214,7 @@
 <script>
     import {mapState} from 'vuex'
     import axios from 'axios'
-    import {reqDeleteShopCart,reqAddCount,reqSubstractCount,reqAddAddress,reqGetAddress,reqClearOrderSession,reqCreateOrder,reqCancelOrder,reqPay,reqInitLogin,reqSysCancelOrder,reqInitShopCart} from '../../api'
+    import {reqEditShopCart,reqSubmitOrder,reqAddAddress,reqGetAddress,reqCreateOrder,reqCancelOrder,reqPay,reqSysCancelOrder,reqInitShopCart,reqGetCoupon} from '../../api'
     import addressData from '../../assets/citys.json'
     import { Notification } from 'element-ui'
 
@@ -239,46 +235,42 @@
                 isIndeterminate: false,
                 orderVisible: false,
                 Address: {
-                    name: '',
+                    receiver: '',
                     telephone: '',
                     pcd: [],
                     detail: ''
                 },
                 otherAddress: [],
-                defaultAddress: '',
+                defaultAddress: null,
                 selectAddress: '',
                 paymethod: '1',
-                benefitCount: 1,
-                benefits: [],
                 isPay: false,
                 min: '',
                 second: '',
-                timer: null
+                timer: null,
+                coupon: '',
+                couponList: []
             }
         },
         filters: {
             numFilter (value) {
-                let realVal = parseFloat(value).toFixed(1)
+                let realVal = parseFloat(value).toFixed(2)
                 return realVal
             }
         },
         computed: {
             ...mapState({
-                products: state => state.ShopCart.products,
-                min: state=>state.Timer.min,
-                second: state=>state.Timer.second,
-                forbidden: state=>state.Person.forbidden,
-                unpaidOrder: state=>state.Order.unpaidOrder,
-                benefit: state=>state.Person.benefit,
-                currentCredit: state=>state.Person.currentCredit,
-                totalCredit: state=>state.Person.totalCredit
+                user: state=>state.Person.user,
+                products: state =>state.ShopCart.products,
+                isLogin: state=>state.Person.isLogin,
+                unpaidOrder: state=>state.Order.unpaidOrder
             }),
             total() {
                 let total_money = 0;
                 let total_products = 0;
                 this.products.forEach((product) => {
-                    total_money += product.money
-                    total_products += product.count
+                    total_money += product.quantity * product.price
+                    total_products += product.quantity
                 })
                 return {total_money,total_products}
             }
@@ -287,18 +279,30 @@
             change(e) {
                 this.$forceUpdate()
             },
-            useBenefit() {
-                if(this.benefitCount*1000 > this.currentCredit) {
-                    this.$message.error("积分不足!")
+            showCoupon(coupon) {
+                return coupon.tag + ":" + coupon.name
+            },
+            notUseCoupon() {
+                this.coupon = ''
+            },
+            getDiscount(coupon) {
+                for(var i = 0;i < this.couponList.length;i++) {
+                    if(coupon === this.couponList[i].membersNo) {
+                        return this.couponList[i].discount
+                    }
                 }
+                return 0
             },
             picUrl(picName) {
-                return "/api/pictures/" + picName
+                return "http://10.104.131.158/" + picName
             },
-            deleteProduct(productId,index) {
-                this.$store.commit('ShopCart/deleteProduct',index)
-                reqDeleteShopCart(productId).then((data) => {
-                    this.$message.success(data)
+            deleteProduct(productNo,index) {
+                reqEditShopCart({
+                    memberId: this.user.memberId,
+                    productNo: productNo,
+                    type: 2
+                }).then(() => {
+                    this.$store.commit('ShopCart/deleteProduct',index)
                 }).catch(() => {
                     this.$message.error("购物车删除商品失败")
                 })
@@ -316,22 +320,10 @@
             },
             handleCheckAllChange(val) {
                 if(val){
+                    this.orderList = []
                     for(var i = 0;i < this.products.length;i++){
-                        var id = this.products[i].productId
-                        var stock = this.products[i].stock
-                        if(stock != 0){
-                            var flag = 0
-                            for(var j = 0;j < this.orderList.length;j++){
-                                if(id === this.orderList[j]){
-                                    flag = 1
-                                    break
-                                }
-                            }
-                            if(flag === 0){
-                                this.orderList.push(id)
-                            }
-                        } else {
-                            continue
+                        if(this.products[i].stock > 0) {
+                            this.orderList.push(this.products[i].productNo)
                         }
                     }
                 } else {
@@ -339,108 +331,145 @@
                 }
                 this.isIndeterminate = false;
             },
-            add(count,stock,index,productId) {
+            add(count,stock,index,productNo) {
                 if (count < stock) {
-                    this.$store.commit('ShopCart/add',index)
-                    reqAddCount(productId).then().catch(() => {
+                    reqEditShopCart({
+                        memberId: this.user.memberId,
+                        productNo: productNo,
+                        type: 0
+                    }).then(() => {
+                        this.$store.commit('ShopCart/add',index)
+                    }).catch(() => {
                         this.$message.error("增加数量失败")
                     })
                 } else {
                     this.$message.error("超过库存")
                 }
             },
-            substract(index,productId) {
-                this.$store.commit('ShopCart/substract',index)
-                reqSubstractCount(productId).then().catch(() => {
+            substract(index,productNo) {
+                reqEditShopCart({
+                    memberId: this.user.memberId,
+                    productNo: productNo,
+                    type: 1
+                }).then(() => {
+                    this.$store.commit('ShopCart/substract',index)
+                }).catch(() => {
                     this.$message.error("减少数量失败")
                 })  
             },
             submitOrder() {
-                if(this.forbidden === 1) {
+                if(this.user.status === 2) {
                     this.$message.error("您已被禁用,无法购买商品。")
                 } else {
-                    reqGetAddress().then((data) => {
-                        let address = data
-                        for(var i = 0;i < address.length;i++) {
-                            if(address[i].isDefault) {
-                                this.defaultAddress = address[i]
-                                this.selectAddress = address[i].addressId
-                            } else {
-                                this.otherAddress.push(address[i])
-                            }
-                        }
-                    }).catch(() => {
-                        this.$message.error=("获取地址失败")
-                    })
-                    let url = '/api/order/submit'
-                    let formData = new FormData()
-                    formData.append("order",this.orderList)
-
-                    axios({
-                        method: 'POST',
-                        url: url,
-                        headers: {
-                            'Content-Type': 'multipart/form-data;charset=UTF-8'
-                        },
-                        data:formData
-                    }).then((data) => {
-                        if(data.data.message === 'OK') {
-                            this.order = data.data
-                            let num = Math.floor(this.currentCredit / 1000)
-                            for(var i = 1;i <= num;i++) {
-                                this.benefits.push(i)
-                            }
-                            this.orderVisible = true
-                        } else {
-                            for(var i = 0;i < data.data.orderProducts.length;i++) {
-                                var type = data.data.orderProducts[i].typeName
-                                var name = data.data.orderProducts[i].productName
-                                this.$message.error("属于" + type + "的商品" + name + "已经下架啦！")
-                                for(var j = 0;j < this.products.length;j++) {
-                                    if(data.data.orderProducts[i].productId === this.products[j].productId) {
-                                        this.$store.commit('ShopCart/deleteProduct',j)
-                                        reqDeleteShopCart(data.data.orderProducts[i].productId).then((data) => {
-                                            this.$message.success(data)
-                                        }).catch(() => {
-                                            this.$message.error("购物车删除商品失败")
-                                        })
-                                    }
+                    if(!this.isLogin) {
+                        this.$message.info("请先登录")
+                    } else {
+                        reqGetAddress(this.user.memberId).then((data) => {
+                            let address = data.data
+                            for(var i = 0;i < address.length;i++) {
+                                if(address[i].defaultAddress === 1) {
+                                    this.defaultAddress = address[i]
+                                    this.selectAddress = address[i].addressNo
+                                } else {
+                                    this.otherAddress.push(address[i])
                                 }
                             }
-                        }
-                    }).catch(() => {
-                        this.$message.error("获取订单失败")
-                    })
+                        }).catch(() => {
+                            this.$message.error("获取地址失败")
+                        })
+                        reqGetCoupon(this.user.memberId).then((data) => {
+                            console.log("coupon",data.data)
+                            this.couponList = data.data
+                        })
+                        reqSubmitOrder({
+                            memberId: this.user.memberId,
+                            productNos: this.orderList
+                        }).then((data) => {
+                            if(data.success) {
+                                this.order = data.data
+                                this.orderVisible = true
+                            } else {
+                                var product = null
+                                var index = -1
+                                for(var i = 0;i < this.products.length;i++) {
+                                    if(data.statusInfo === this.products[i].productNo) {
+                                        product = this.products[i]
+                                        index = i
+                                        break
+                                    }
+                                }
+                                this.$message.error("属于" + product.typeName + "的商品" + product.productName + "已经下架或者正在进行秒杀！")
+                                reqEditShopCart({
+                                    memberId: this.user.memberId,
+                                    productNo: product.productNo,
+                                    type: 2
+                                }).then(() => {
+                                    this.$store.commit('ShopCart/deleteProduct',index)
+                                    for(var j = 0;j < this.orderList.length;j++) {
+                                        if(product.productNo === this.orderList[j]) {
+                                            this.orderList.splice(j,1);
+                                            this.checkAll = this.orderList.length === this.products.length
+                                            this.isIndeterminate = this.orderList.length > 0 && this.orderList.length < this.products.length
+                                            break;
+                                        }
+                                    }
+                                }).catch(() => {
+                                    this.$message.error("购物车删除商品失败")
+                                })
+                            }
+                        }).catch(() => {
+                            this.$message.error("获取订单失败")
+                        })
+                    }    
                 }
             },
             addAddress() {
                 this.addressVisible = true
             },
-            createAddress(modelName) {
+            createAddress() {
+                var isDefault = 0
+                if(this.checked) {
+                        isDefault = 1
+                    }
                 reqAddAddress({
+                    memberId: this.user.memberId,
                     receiver: this.Address.receiver,
-                    telephone: this.Address.telephone,
+                    phoneNum: this.Address.telephone,
                     province: this.Address.pcd[0],
                     city: this.Address.pcd[1],
-                    district: this.Address.pcd[2],
-                    detail: this.Address.detail,
-                    isDefault: this.checked
-                }).then(() => {
-                    this.addressVisible = false
-                    reqGetAddress().then((data) => {
-                        let address = data
+                    area: this.Address.pcd[2],
+                    detailAddress: this.Address.detail,
+                    defaultAddress: isDefault
+                }).then((data) => {
+                    if(data.success) {
+                        this.$message.success("创建地址成功!")
+                        this.selectAddress = ''
+                        this.defaultAddress = ''
                         this.otherAddress = []
-                        for(var i = 0;i < address.length;i++) {
-                            if(address[i].isDefault) {
-                                this.defaultAddress = address[i]
-                                this.selectAddress = address[i].addressId
-                            } else {
-                                this.otherAddress.push(address[i])
+                        this.addressVisible = false
+                        this.Address.receiver = ''
+                        this.Address.telephone = ''
+                        this.Address.pcd = []
+                        this.Address.detail = ''
+                        this.checked = false
+                        this.addressVisible = false
+                        reqGetAddress(this.user.memberId).then((data) => {
+                            let address = data.data
+                            console.log("address",address)
+                            for(var i = 0;i < address.length;i++) {
+                                if(address[i].defaultAddress === 1) {
+                                    this.defaultAddress = address[i]
+                                    this.selectAddress = address[i].addressNo
+                                } else {
+                                    this.otherAddress.push(address[i])
+                                }
                             }
-                        }
-                    }).catch(() => {
-                        this.$message.error=("获取地址失败")
-                    })
+                        }).catch(() => {
+                            this.$message.error("获取地址失败")
+                        })
+                    } else {
+                        this.$message.warning("创建地址失败!")
+                    }
                 }).catch(() => {
                     this.$message.success("传输失败")
                 })
@@ -455,7 +484,7 @@
                         type: 'success',
                         message: '取消成功!'
                     });
-                    reqClearOrderSession().then().catch()
+                    this.selectAddress = ''
                     this.defaultAddress = ''
                     this.otherAddress = []
                     this.addressVisible = false
@@ -469,8 +498,7 @@
                     this.Address.detail = ''
                     this.checked = false
                     this.paymethod = '1'
-                    this.benefitCount = 1
-                    this.benefits = []
+                    this.coupon = ''
                 }).catch(() => {});
             },
             onCancel() {
@@ -482,61 +510,76 @@
                 this.checked = false
             },
             pay() {
-                this.showShopCart = false
-                if(!this.timer) {
-                    this.second = 0
-                    this.min = MIN_COUNT
-                    this.timer = setInterval(() => {
-                        if(this.second > 0 && this.second <= TIME_COUNT) {
-                            this.second--
-                        }
-                        if(this.second === 0 && this.min > 0 && this.min <= MIN_COUNT) {
-                            this.min--
-                            this.second = TIME_COUNT;
-                        } 
-                        if(this.second === 0 && this.min === 0) {
-                            this.isPay = false
-                            clearInterval(this.timer);
-                            this.timer = null;
-                            this.min = ''
-                            this.second = ''
-                        }
-                    }, 1000)
+                var productNos = []
+                for(var i = 0;i < this.order.shopCartDTOS.length;i++) {
+                    productNos.push(this.order.shopCartDTOS[i].productNo)
                 }
-                let num
-                if(this.paymethod === '0') {
-                    num = this.benefitCount
-                } else {
-                    num = 0
+                var selectCoupon = null
+                for(var i = 0;i < this.couponList.length;i++) {
+                    if(this.coupon === this.couponList[i].membersNo) {
+                        selectCoupon = this.couponList[i]
+                        break
+                    }
                 }
-                reqCreateOrder(this.selectAddress,num).then((data) => {
-                    if(data.message == 'OK') {
-                        this.order = data
+                reqCreateOrder({
+                    memberId: this.user.memberId,
+                    productNos: productNos,
+                    addressNo: this.selectAddress,
+                    couponDTO: selectCoupon
+                }).then((data) => {
+                    if(data.success) {
+                        this.order = data.data
+                        if(!this.timer) {
+                            this.second = 0
+                            this.min = MIN_COUNT
+                            this.timer = setInterval(() => {
+                                if(this.second > 0 && this.second <= TIME_COUNT) {
+                                    this.second--
+                                }
+                                if(this.second === 0 && this.min > 0 && this.min <= MIN_COUNT) {
+                                    this.min--
+                                    this.second = TIME_COUNT;
+                                } 
+                                if(this.second === 0 && this.min === 0) {
+                                    this.isPay = false
+                                    this.$store.commit('Order/minus')
+                                    clearInterval(this.timer);
+                                    this.timer = null;
+                                    this.min = ''
+                                    this.second = ''
+                                }
+                            }, 1000)
+                        }
                         this.$store.commit('Order/add')
                         this.isPay = true
                         this.orderVisible = false
                         this.checkAll = false
                         this.isIndeterminate = false
                         this.defaultAddress = ''
+                        this.selectAddress = ''
                         this.otherAddress = []
                         this.paymethod = '1'
-                        this.benefitCount = 1
-                        this.benefits = []
-                        for(var i = 0;i < this.orderList.length;i++) {
+                        this.soupon = ''
+                        for(var i = 0;i < productNos.length;i++) {
                             for(var j = 0;j < this.products.length;j++) {
-                                if(this.orderList[i] === this.products[j].productId) {
+                                if(productNos[i] === this.products[j].productNo) {
+                                    console.log("product",productNos[i])
                                     this.$store.commit('ShopCart/deleteProduct',j)
-                                    reqDeleteShopCart(this.orderList[i]).then((data) => {
-                                        this.$message.success(data)
+                                    reqEditShopCart({
+                                        memberId: this.user.memberId,
+                                        productNo: productNos[i],
+                                        type: 2
+                                    }).then(() => {
                                     }).catch(() => {
                                         this.$message.error("购物车删除商品失败")
                                     })
+                                    break
                                 }
                             }
                         }
                         this.orderList = []
                     } else {
-                        this.$message.info("商品" + data.message + "库存不足,无法下单")
+                        this.$message.info(data.statusInfo)
                         reqInitShopCart().then((data) => {
                             this.$store.commit('ShopCart/displayShopCart', data)
                             this.defaultAddress = ''
@@ -552,8 +595,6 @@
                             this.Address.detail = ''
                             this.checked = false
                             this.paymethod = '1'
-                            this.benefitCount = 1
-                            this.benefits = []
                         })
                     }
                 }).catch(() => {
@@ -561,26 +602,45 @@
                 })
             },
             finishPay() {
-                reqPay(this.order.orderId).then((data) => {
-                    reqInitLogin().then((data) => {
+                reqPay({
+                    memberId: this.user.memberId,
+                    orderNo: this.order.orderNo,
+                    couponDTO: this.order.couponDTO
+                }).then((data) => {
+                    if(data.success) {
+                        this.$message.success(data.statusInfo)
+                        this.showShopCart = false
                         this.$store.commit('Order/minus')
-                        this.$store.commit('Person/setLevel', data.level)
-                        this.$store.commit('Person/setBenefit', data.benefit)
-                        this.$store.commit('Person/setCurrentCredit', data.currentCredit)
-                        this.$store.commit('Person/setTotalCredit', data.totalCredit)
-                        this.$store.commit('Person/setNextLevelCredit', data.nextLevelCredit)
                         clearInterval(this.timer);
                         this.timer = null;
                         this.min = ''
                         this.second = ''
                         this.isPay = false
-                    })
-                }).catch(() => {
-
+                    } else {
+                        this.$message.warning(data.statusInfo)
+                    }
                 })
             },
             cancelPay() {
-                reqCancelOrder(this.order.orderId).then(() => {
+                reqCancelOrder({
+                    memberId: this.user.memberId,
+                    orderNo: this.order.orderNo
+                }).then(() => {
+                    this.showShopCart = false
+                    this.$store.commit('Order/minus')
+                    clearInterval(this.timer);
+                    this.timer = null;
+                    this.min = ''
+                    this.second = ''
+                    this.isPay = false
+                }).catch()
+            },
+            confirmCancelPay() {
+                reqCancelOrder({
+                    memberId: this.user.memberId,
+                    orderNo: this.order
+                }).then(() => {
+                    this.showShopCart = false
                     this.$store.commit('Order/minus')
                     clearInterval(this.timer);
                     this.timer = null;
@@ -597,7 +657,6 @@
                 this.timer = null;
                 this.min = ''
                 this.second = ''
-                this.isPay = false
                 this.showShopCart = false
                 Notification.closeAll()
                 if(this.unpaidOrder > 0){
@@ -680,6 +739,13 @@
     .ordername{
         font-family: 等线;
         font-size: 24px;
+        margin-top:20px;
+    }
+    .orderCondition{
+        font-family: tohoma,arial;
+        font-size: 15px;
+        color: #00F;
+        margin-top:15px;
     }
     .type{
         font-family: 仿宋;
@@ -688,7 +754,7 @@
     .ordertype{
         font-family: 仿宋;
         font-size: 20px;
-        margin-top:50px
+        margin-top:20px;
     }
     .money{
         font-family: tohoma,arial;
@@ -697,7 +763,6 @@
     .ordermoney{
         font-family: tohoma,arial;
         font-size: 15px;
-        margin-top:50px
     }
     .totaltxt{
         font-family: 仿宋;
@@ -722,6 +787,12 @@
         font-weight: 500;
         font-size: 20px;
         font-family: tohoma,arial;
+    }
+    .orderFull{
+        font-weight: 500;
+        font-size: 20px;
+        font-family: tohoma,arial;
+        color: #00F;
         margin-top:50px;
     }
 </style>

@@ -1,10 +1,14 @@
-import {reqGetAllTypes,reqGetPropertyName,reqGetProducts} from '../../api'
+import {reqGetAllTypes,reqGetProducts,reqGetSecondTypes} from '../../api'
 
 const state = {
     products: [],
     productTypes: [],
+    productSecondTypes: [],
+    searchSecondTypes: [],
     productPropertyNames: [],
-    activeType: ''
+    activeType: '',
+    secKillProducts: [],
+    activeSecondType: ''
 }
 
 const mutations = {
@@ -12,13 +16,23 @@ const mutations = {
         state.products = products
     },
     updateProductTypes(state, productTypes) {
+        console.log("types",productTypes)
         state.productTypes = productTypes
     },
-    updateProductPropertyNames(state, productPropertyNames) {
-        state.productPropertyNames = productPropertyNames
+    updateProductSecondTypes(state, productSecondTypes) {
+        state.productSecondTypes = productSecondTypes
+    },
+    updateSearchSecondTypes(state, productSecondTypes) {
+        state.searchSecondTypes = productSecondTypes
     },
     updateActiveType(state, activeType) {
         state.activeType = activeType
+    },
+    setSecKillProducts(state,secKillProducts) {
+        state.secKillProducts = secKillProducts
+    },
+    updateActiveSecondType(state,activeSecondType) {
+        state.activeSecondType = activeSecondType
     }
 }
 
@@ -30,12 +44,17 @@ const actions = {
     },
     getAllTypes({commit}) {
         reqGetAllTypes().then((data) => {
-            commit('updateProductTypes', data)
+            commit('updateProductTypes', data.data)
         })
     },
-    getPropertyName({commit}, typeName) {
-        reqGetPropertyName(typeName).then((data) => {
-            commit('updateProductPropertyNames', data)
+    getSecondTypes({commit}, productFirstType) {
+        reqGetSecondTypes(productFirstType).then((data) => {
+            commit('updateProductSecondTypes', data.data)
+        })
+    },
+    getSearchSecondTypes({commit}, productFirstType) {
+        reqGetSecondTypes(productFirstType).then((data) => {
+            commit('updateSearchSecondTypes', data.data)
         })
     }
 }

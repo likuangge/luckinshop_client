@@ -1,8 +1,8 @@
 const state = {
 	isClick: false,
 	clickProduct: '',
-	clickProductProperties: [],
-    clickProductPictures: []
+    activity: 0,
+    activityContent: ''
 }
 
 const mutations = {
@@ -12,14 +12,14 @@ const mutations = {
     updateClickProduct(state, clickProduct) {
     	state.clickProduct = clickProduct
     },
-    updateClickProductProperties(state, clickProductProperties) {
-    	state.clickProductProperties = clickProductProperties
-    },
-    updateClickProductPictures(state, clickProductPictures) {
-        state.clickProductPictures = clickProductPictures
-    },
     resetClick(state) {
         state.isClick = false
+    },
+    updateActivity(state,activity) {
+        state.activity = activity
+    },
+    updateActivityContent(state,activityContent) {
+        state.activityContent = activityContent
     }
 }
 

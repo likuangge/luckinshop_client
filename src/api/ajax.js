@@ -17,10 +17,25 @@ export default function ajax (url, data={}, method='GET') {
             }
 
             promise = axios.get(url)
-        } else {
+        } else if (method === 'POST') {
             console.log("AJAX", url);
             console.log("AJAXData", data);
             promise = axios.post(url, data)
+        } else if (method === 'PUT') {
+            console.log("AJAX", url);
+            console.log("AJAXData", data);
+            promise = axios.put(url, data)
+        } else {
+            let dataStr = ''
+            Object.keys(data).forEach(key => {
+                dataStr += key + '=' + data[key] + '&'
+            })
+            if (dataStr !== '') {
+                dataStr = dataStr.substring(0, dataStr.lastIndexOf('&'))
+                url = url + '?' + dataStr
+            }
+
+            promise = axios.delete(url)
         }
 
         promise.then(function (response) {
