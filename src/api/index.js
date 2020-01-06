@@ -3,7 +3,13 @@ import ajax from './ajax'
 const BASE_URL = '/api'
 
 //获取文件
-export const reqGetFile = ({page, rows}) => ajax(BASE_URL+'/ocr/fileList', {page, rows}, 'POST')
+export const reqGetFile = ({page, rows}) => ajax(BASE_URL + '/ocr/fileList', {page, rows}, 'POST')
+
+//文件解析
+export const reqFileAnalysis = ({fileId, fileUrl}) => ajax(BASE_URL + '/ocr/fileAnalysis', {fileId, fileUrl}, 'POST')
+
+//获取文件详情
+export const reqFileDetail = (fileId) => ajax(BASE_URL + '/ocr/getFileDetail', {fileId})
 
 // 1、普通用户登录
 export const reqLogin = ({username,password}) => ajax(BASE_URL+'/members/login', {username,password}, 'POST')
