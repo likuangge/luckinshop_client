@@ -6,10 +6,10 @@ const BASE_URL = '/api'
 export const reqGetFile = ({page, rows}) => ajax(BASE_URL + '/ocr/fileList', {page, rows}, 'POST')
 
 //文件解析
-export const reqFileAnalysis = ({fileId, fileUrl}) => ajax(BASE_URL + '/ocr/fileAnalysis', {fileId, fileUrl}, 'POST')
+export const reqFileAnalysis = ({fileId, fileType, fileUrl}) => ajax(BASE_URL + '/ocr/fileAnalysis', {fileId, fileType, fileUrl}, 'POST')
 
 //获取文件详情
-export const reqFileDetail = (fileId) => ajax(BASE_URL + '/ocr/getFileDetail', {fileId})
+export const reqFileDetail = ({fileId, fileType}) => ajax(BASE_URL + '/ocr/getFileDetail', {fileId, fileType}, 'POST')
 
 // 1、普通用户登录
 export const reqLogin = ({username,password}) => ajax(BASE_URL+'/members/login', {username,password}, 'POST')
